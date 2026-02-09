@@ -5,7 +5,7 @@ A native macOS menu bar application that detects word selections across all appl
 ## Features
 
 - **System-wide text selection monitoring** using Accessibility API
-- **Keyboard shortcut activation** (Cmd+Control+L by default)
+- **Keyboard shortcut activation** (Cmd+Shift+Option+D by default)
 - **Dictionary lookup** with local JSON dictionary and API fallback
 - **Floating definition popup** that appears near your cursor
 - **Editable journal** with spreadsheet-like interface
@@ -61,7 +61,7 @@ Ensure `dictionary.json` is added to the app bundle:
 
 1. **Look up a word:**
    - Select any text in any application
-   - Press `Cmd+Control+L` (or your custom shortcut)
+   - Press `Cmd+Shift+Option+D` (or your custom shortcut)
    - A floating popup will appear with the definition
 
 2. **Add to journal:**

@@ -94,25 +94,122 @@ class AccessibilityMonitor: ObservableObject {
     }
     
     func getCurrentSelectedText() -> String {
-        guard hasAccessibilityPermission,
-              let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+        guard hasAccessibilityPermission else {
+            print("AccessibilityMonitor: No permissions for getCurrentSelectedText")
             return ""
         }
         
-        let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
-        var selectedTextRef: CFTypeRef?
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+            print("AccessibilityMonitor: No frontmost application")
+            return ""
+        }
         
+        print("AccessibilityMonitor: Frontmost app: \(frontmostApp.localizedName ?? "Unknown") (PID: \(frontmostApp.processIdentifier))")
+        
+        // Try multiple methods to get selected text
+        
+        // Method 1: Try to get focused element first, then get selected text from it
+        let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
+        
+        // First, try to get the focused UI element
+        var focusedElementRef: CFTypeRef?
+        let focusResult = AXUIElementCopyAttributeValue(
+            appRef,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElementRef
+        )
+        
+        if focusResult == .success, let focusedElement = focusedElementRef {
+            print("AccessibilityMonitor: Got focused element")
+            
+            // Try to get selected text from focused element
+            var selectedTextRef: CFTypeRef?
+            let result = AXUIElementCopyAttributeValue(
+                focusedElement as! AXUIElement,
+                kAXSelectedTextAttribute as CFString,
+                &selectedTextRef
+            )
+            
+            if result == .success, let text = selectedTextRef as? String, !text.isEmpty {
+                print("AccessibilityMonitor: ✅ Got selected text from focused element: '\(text)'")
+                return text.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                print("AccessibilityMonitor: Failed to get selected text from focused element. Result: \(result.rawValue)")
+            }
+        } else {
+            print("AccessibilityMonitor: Failed to get focused element. Result: \(focusResult.rawValue)")
+        }
+        
+        // Method 2: Try to get selected text directly from application
+        var selectedTextRef: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(
             appRef,
             kAXSelectedTextAttribute as CFString,
             &selectedTextRef
         )
         
-        if result == .success,
-           let text = selectedTextRef as? String {
+        if result == .success, let text = selectedTextRef as? String, !text.isEmpty {
+            print("AccessibilityMonitor: ✅ Got selected text from app: '\(text)'")
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            print("AccessibilityMonitor: Failed to get selected text from app. Result: \(result.rawValue)")
         }
         
+        // Method 3: Try using pasteboard (copy selection)
+        print("AccessibilityMonitor: Trying pasteboard method...")
+        let text = getTextFromPasteboard()
+        if !text.isEmpty {
+            print("AccessibilityMonitor: ✅ Got text from pasteboard: '\(text)'")
+            return text
+        }
+        
+        print("AccessibilityMonitor: ❌ All methods failed to get selected text")
         return ""
+    }
+    
+    private func getTextFromPasteboard() -> String {
+        print("AccessibilityMonitor: Starting pasteboard method (Cmd+C simulation)")
+        
+        // Save current pasteboard contents
+        let pasteboard = NSPasteboard.general
+        let oldContents = pasteboard.string(forType: .string)
+        print("AccessibilityMonitor: Old pasteboard contents: '\(oldContents ?? "nil")'")
+        
+        // Clear pasteboard first to ensure we get fresh content
+        pasteboard.clearContents()
+        
+        // Simulate Cmd+C to copy selection
+        let source = CGEventSource(stateID: .hidSystemState)
+        
+        // Press Cmd+C (C key = 0x08)
+        let cmdCDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true)
+        cmdCDown?.flags = .maskCommand
+        let cmdCUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false)
+        cmdCUp?.flags = .maskCommand
+        
+        print("AccessibilityMonitor: Posting Cmd+C events...")
+        cmdCDown?.post(tap: .cghidEventTap)
+        Thread.sleep(forTimeInterval: 0.02) // Small delay between down and up
+        cmdCUp?.post(tap: .cghidEventTap)
+        
+        // Wait for copy to complete
+        Thread.sleep(forTimeInterval: 0.1)
+        
+        // Get the new pasteboard contents
+        let newContents = pasteboard.string(forType: .string) ?? ""
+        print("AccessibilityMonitor: New pasteboard contents: '\(newContents)'")
+        
+        // Restore old pasteboard contents
+        if let oldContents = oldContents {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                pasteboard.clearContents()
+                pasteboard.setString(oldContents, forType: .string)
+                print("AccessibilityMonitor: Restored old pasteboard contents")
+            }
+        }
+        
+        let result = newContents.trimmingCharacters(in: .whitespacesAndNewlines)
+        print("AccessibilityMonitor: Pasteboard method result: '\(result)'")
+        return result
     }
 }

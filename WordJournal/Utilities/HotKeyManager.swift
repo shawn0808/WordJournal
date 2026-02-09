@@ -11,8 +11,8 @@ class HotKeyManager: ObservableObject {
     static let shared = HotKeyManager()
     
     @Published var hotKeyEnabled: Bool = true
-    @Published var modifierFlags: NSEvent.ModifierFlags = [.command, .control]
-    @Published var keyCode: UInt16 = 37 // 'L' key
+    @Published var modifierFlags: NSEvent.ModifierFlags = [.command, .shift, .option]
+    @Published var keyCode: UInt16 = 2 // 'D' key
     @Published var monitorActive: Bool = false // Track if event monitor is active
     
     private var eventMonitor: Any?
@@ -48,7 +48,7 @@ class HotKeyManager: ObservableObject {
             return
         }
         
-        print("HotKeyManager: Setting up hotkey - KeyCode: \(keyCode), Expected Modifiers: Command+Control")
+        print("HotKeyManager: Setting up hotkey - KeyCode: \(keyCode), Expected Modifiers: Command+Shift+Option")
         
         // Use NSEvent global monitor for modern hotkey detection
         // Note: This requires accessibility permissions
@@ -58,31 +58,31 @@ class HotKeyManager: ObservableObject {
             // Get the modifier flags (only the ones we care about)
             let eventModifiers = event.modifierFlags.intersection([.command, .shift, .option, .control])
             
-            // Debug: log all Cmd+Control combinations
-            if eventModifiers.contains(.command) && eventModifiers.contains(.control) {
-                print("HotKeyManager: 🔍 Cmd+Control detected - KeyCode: \(event.keyCode), All Modifiers: \(event.modifierFlags.rawValue)")
+            // Debug: log all Cmd+Shift+Option combinations
+            if eventModifiers.contains(.command) && eventModifiers.contains(.shift) && eventModifiers.contains(.option) {
+                print("HotKeyManager: 🔍 Cmd+Shift+Option detected - KeyCode: \(event.keyCode), All Modifiers: \(event.modifierFlags.rawValue)")
             }
             
-            // Check if we have exactly Command + Control (no other modifiers)
+            // Check if we have exactly Command + Shift + Option (no Control)
             let hasCommand = eventModifiers.contains(.command)
             let hasShift = eventModifiers.contains(.shift)
             let hasOption = eventModifiers.contains(.option)
             let hasControl = eventModifiers.contains(.control)
             
-            // We want Command + Control, but NOT Shift or Option
-            guard hasCommand && hasControl && !hasShift && !hasOption else {
+            // We want Command + Shift + Option, but NOT Control
+            guard hasCommand && hasShift && hasOption && !hasControl else {
                 return
             }
             
-            // Check if key code matches (L = 37)
+            // Check if key code matches (D = 2)
             guard event.keyCode == self.keyCode else {
-                if hasCommand && hasControl {
-                    print("HotKeyManager: ⚠️ Wrong key - Expected: \(self.keyCode) (L), Got: \(event.keyCode)")
+                if hasCommand && hasShift && hasOption {
+                    print("HotKeyManager: ⚠️ Wrong key - Expected: \(self.keyCode) (D), Got: \(event.keyCode)")
                 }
                 return
             }
             
-            print("HotKeyManager: ✅✅✅ HOTKEY MATCHED! KeyCode: \(event.keyCode) (L), Modifiers: Cmd+Control")
+            print("HotKeyManager: ✅✅✅ HOTKEY MATCHED! KeyCode: \(event.keyCode) (D), Modifiers: Cmd+Shift+Option")
             print("HotKeyManager: Calling activation handler...")
             
             // Call the activation handler
@@ -104,7 +104,7 @@ class HotKeyManager: ObservableObject {
         } else {
             monitorActive = true
             print("HotKeyManager: ✅✅✅ Global event monitor created successfully!")
-            print("HotKeyManager: ✅ Listening for Cmd+Control+L (KeyCode: \(keyCode))")
+            print("HotKeyManager: ✅ Listening for Cmd+Shift+Option+D (KeyCode: \(keyCode))")
             print("HotKeyManager: ✅ Monitor object: \(String(describing: eventMonitor))")
             print("HotKeyManager: ✅ Ready to detect hotkey!")
         }

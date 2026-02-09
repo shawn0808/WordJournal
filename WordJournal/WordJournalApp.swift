@@ -62,7 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func showPreferences() {
         if preferencesWindow == nil || !preferencesWindow!.isVisible {
             let contentView = PreferencesView()
-                .environmentObject(HotKeyManager.shared)
+                .environmentObject(TriggerManager.shared)
             
             let hostingView = NSHostingView(rootView: contentView)
             hostingView.frame = NSRect(x: 0, y: 0, width: 500, height: 400)
@@ -92,7 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 alert.messageText = "No Text Selected"
-                alert.informativeText = "Please select a word first, then press Cmd+Control+L"
+                alert.informativeText = "Please select a word first, then press Cmd+Shift+Option+D"
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -218,10 +218,50 @@ struct WordJournalApp: App {
     func setupServices() {
         print("WordJournalApp: setupServices() called")
         
-        // Set up hotkey handler
+        // Check accessibility permissions first
+        AccessibilityMonitor.shared.checkAccessibilityPermission(showPrompt: false)
+        
+        if !AccessibilityMonitor.shared.hasAccessibilityPermission {
+            print("⚠️ ⚠️ ⚠️ ACCESSIBILITY PERMISSIONS NOT GRANTED ⚠️ ⚠️ ⚠️")
+            print("The app needs accessibility permissions to work!")
+            print("Please go to: System Settings → Privacy & Security → Accessibility")
+            print("Enable 'WordJournal' and restart the app")
+            print("")
+            print("Or click the menu bar icon → Preferences → Request Permission")
+            
+            // Show alert to user
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                let alert = NSAlert()
+                alert.messageText = "Accessibility Permission Required"
+                alert.informativeText = """
+                WordJournal needs accessibility permissions to:
+                • Detect text selections
+                • Listen for global keyboard shortcuts
+                
+                Please enable it in:
+                System Settings → Privacy & Security → Accessibility
+                
+                Then restart the app.
+                """
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "Open System Settings")
+                alert.addButton(withTitle: "Remind Me Later")
+                
+                let response = alert.runModal()
+                if response == .alertFirstButtonReturn {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
+        } else {
+            print("✅ Accessibility permissions granted")
+        }
+        
+        // Set up trigger handler (keyboard or triple-click)
         let delegate = appDelegate
         print("WordJournalApp: Setting activation handler")
-        HotKeyManager.shared.setActivationHandler {
+        TriggerManager.shared.setActivationHandler {
             print("WordJournalApp: Activation handler called!")
             delegate.handleLookup()
         }

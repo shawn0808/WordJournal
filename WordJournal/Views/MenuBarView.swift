@@ -46,7 +46,7 @@ struct MenuBarView: View {
             // Test button for debugging
             Button("Test Lookup") {
                 print("MenuBarView: Test button clicked - triggering lookup manually")
-                HotKeyManager.shared.triggerManually()
+                TriggerManager.shared.triggerManually()
             }
             .buttonStyle(.plain)
             

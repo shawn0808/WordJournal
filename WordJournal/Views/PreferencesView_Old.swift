@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PreferencesView: View {
-    @EnvironmentObject var triggerManager: TriggerManager
+    @EnvironmentObject var hotKeyManager: HotKeyManager
     @ObservedObject var accessibilityMonitor = AccessibilityMonitor.shared
     
     var body: some View {
@@ -32,7 +32,7 @@ struct PreferencesView: View {
                             Label("Permission required", systemImage: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
                             
-                            Text("Word Journal needs accessibility permissions to detect text selections and gestures.")
+                            Text("Word Journal needs accessibility permissions to detect text selections.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
@@ -55,96 +55,47 @@ struct PreferencesView: View {
                 
                 Divider()
                 
-                // Trigger Mode Selection
+                // Hot Key Settings
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Activation Method")
+                    Text("Keyboard Shortcut")
                         .font(.headline)
                     
-                    Picker("Trigger Mode", selection: $triggerManager.triggerMode) {
-                        ForEach(TriggerMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
+                    Toggle("Enable Hot Key", isOn: $hotKeyManager.hotKeyEnabled)
+                        .onChange(of: hotKeyManager.hotKeyEnabled) { _ in
+                            hotKeyManager.setupHotKey()
                         }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: triggerManager.triggerMode) { _ in
-                        triggerManager.setupTriggers()
-                    }
                     
-                    // Show appropriate description based on mode
-                    switch triggerManager.triggerMode {
-                    case .threeFingerTap:
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("3-finger tap to lookup", systemImage: "hand.tap.fill")
-                                .foregroundColor(.blue)
-                            Text("Select text and tap with 3 fingers to see the definition")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("Note: May conflict with macOS Look Up gesture")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
-                        
-                    case .controlClick:
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Control+Click to lookup", systemImage: "cursorarrow.click")
-                                .foregroundColor(.blue)
-                            Text("Select text and Control+Click (or right-click) to see the definition")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("⭐ Recommended: Most reliable method")
-                                .font(.caption2)
-                                .foregroundColor(.green)
-                        }
-                        
-                    case .keyboard:
-                        VStack(alignment: .leading, spacing: 8) {
-                            Toggle("Enable Keyboard Shortcut", isOn: $triggerManager.hotKeyEnabled)
-                                .onChange(of: triggerManager.hotKeyEnabled) { _ in
-                                    triggerManager.setupTriggers()
-                                }
+                    if hotKeyManager.hotKeyEnabled {
+                        HStack {
+                            Text("Current shortcut:")
                             
-                            if triggerManager.hotKeyEnabled {
-                                HStack {
-                                    Text("Current shortcut:")
-                                    
-                                    Text(formatModifiers(triggerManager.modifierFlags) + "+" + keyCodeToString(triggerManager.keyCode))
-                                        .font(.system(.body, design: .monospaced))
-                                        .padding(4)
-                                        .background(Color(NSColor.controlBackgroundColor))
-                                        .cornerRadius(4)
-                                }
-                                
-                                Text("Default: ⌘⇧⌥D (Cmd+Shift+Option+D)")
+                            Text(formatModifiers(hotKeyManager.modifierFlags) + "+" + keyCodeToString(hotKeyManager.keyCode))
+                                .font(.system(.body, design: .monospaced))
+                                .padding(4)
+                                .background(Color(NSColor.controlBackgroundColor))
+                                .cornerRadius(4)
+                        }
+                        
+                        // Show monitor status
+                        if hotKeyManager.monitorActive {
+                            Label("Hotkey monitor active", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.caption)
+                        } else {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Hotkey monitor inactive", systemImage: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.red)
                                     .font(.caption)
+                                
+                                Text("Accessibility permissions required for global hotkey detection.")
+                                    .font(.caption2)
                                     .foregroundColor(.secondary)
                             }
                         }
                         
-                    case .both:
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Multiple activation methods", systemImage: "hand.tap.fill")
-                                .foregroundColor(.blue)
-                            Text("Use gesture OR keyboard shortcut (Cmd+Shift+Option+D)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // Show monitor status
-                    if triggerManager.monitorActive {
-                        Label("Trigger monitor active", systemImage: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                        Text("Default: ⌘⇧⌥D (Cmd+Shift+Option+D)")
                             .font(.caption)
-                    } else {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Trigger monitor inactive", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
-                                .font(.caption)
-                            
-                            Text("Accessibility permissions required.")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
+                            .foregroundColor(.secondary)
                     }
                 }
                 
