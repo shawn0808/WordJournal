@@ -62,27 +62,47 @@ class JournalStorage: ObservableObject {
     }
     
     func addEntry(_ entry: WordEntry) {
+        print("JournalStorage: addEntry() called for word: '\(entry.word)'")
+        
         let insertSQL = """
             INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?);
         """
         
         var insertStatement: OpaquePointer?
-        if sqlite3_prepare_v2(db, insertSQL, -1, &insertStatement, nil) == SQLITE_OK {
-            sqlite3_bind_text(insertStatement, 1, entry.id.uuidString, -1, nil)
-            sqlite3_bind_text(insertStatement, 2, entry.word, -1, nil)
-            sqlite3_bind_text(insertStatement, 3, entry.definition, -1, nil)
-            sqlite3_bind_text(insertStatement, 4, entry.partOfSpeech, -1, nil)
-            sqlite3_bind_text(insertStatement, 5, entry.example, -1, nil)
-            sqlite3_bind_double(insertStatement, 6, entry.dateLookedUp.timeIntervalSince1970)
-            sqlite3_bind_text(insertStatement, 7, entry.notes, -1, nil)
+        let prepareResult = sqlite3_prepare_v2(db, insertSQL, -1, &insertStatement, nil)
+        
+        if prepareResult == SQLITE_OK {
+            let idStr = (entry.id.uuidString as NSString).utf8String
+            let wordStr = (entry.word as NSString).utf8String
+            let defStr = (entry.definition as NSString).utf8String
+            let posStr = (entry.partOfSpeech as NSString).utf8String
+            let exStr = (entry.example as NSString).utf8String
+            let notesStr = (entry.notes as NSString).utf8String
             
-            if sqlite3_step(insertStatement) == SQLITE_DONE {
+            sqlite3_bind_text(insertStatement, 1, idStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 2, wordStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 3, defStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 4, posStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 5, exStr, -1, nil)
+            sqlite3_bind_double(insertStatement, 6, entry.dateLookedUp.timeIntervalSince1970)
+            sqlite3_bind_text(insertStatement, 7, notesStr, -1, nil)
+            
+            let stepResult = sqlite3_step(insertStatement)
+            if stepResult == SQLITE_DONE {
+                print("JournalStorage: ✅ Entry saved to database: '\(entry.word)'")
                 DispatchQueue.main.async {
                     self.entries.append(entry)
                     self.entries.sort { $0.dateLookedUp > $1.dateLookedUp }
+                    print("JournalStorage: ✅ Entry added to list. Total entries: \(self.entries.count)")
                 }
+            } else {
+                print("JournalStorage: ❌ Failed to insert. Step result: \(stepResult)")
+                print("JournalStorage: Error: \(String(cString: sqlite3_errmsg(db)))")
             }
+        } else {
+            print("JournalStorage: ❌ Failed to prepare insert. Result: \(prepareResult)")
+            print("JournalStorage: Error: \(String(cString: sqlite3_errmsg(db)))")
         }
         sqlite3_finalize(insertStatement)
     }

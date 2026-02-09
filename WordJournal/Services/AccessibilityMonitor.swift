@@ -15,7 +15,7 @@ class AccessibilityMonitor: ObservableObject {
     @Published var hasAccessibilityPermission: Bool = false
     
     private var timer: Timer?
-    private var lastSelectedText: String = ""
+    private var cachedSelectedText: String = ""
     
     private init() {
         // Silent check on init - don't prompt
@@ -24,20 +24,16 @@ class AccessibilityMonitor: ObservableObject {
     
     func checkAccessibilityPermission(showPrompt: Bool = false) {
         if showPrompt {
-            // Only show prompt when explicitly requested (e.g., from Preferences button)
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
             hasAccessibilityPermission = AXIsProcessTrustedWithOptions(options as CFDictionary)
         } else {
-            // Silent check - don't prompt, just check status
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
             hasAccessibilityPermission = AXIsProcessTrustedWithOptions(options as CFDictionary)
         }
     }
     
     func requestPermission() {
-        // Explicitly request permission (will show prompt)
         checkAccessibilityPermission(showPrompt: true)
-        // Re-check after potential permission grant
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.checkAccessibilityPermission(showPrompt: false)
             if self.hasAccessibilityPermission {
@@ -47,20 +43,21 @@ class AccessibilityMonitor: ObservableObject {
     }
     
     func startMonitoring() {
-        // Check permissions silently first
         checkAccessibilityPermission(showPrompt: false)
         
         guard hasAccessibilityPermission else {
-            // Don't prompt here - user can grant via System Settings or Preferences button
             print("AccessibilityMonitor: No permissions - monitoring disabled")
             return
         }
         
         stopMonitoring()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Poll every 0.3 seconds for selected text
+        timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             self?.pollSelectedText()
         }
+        
+        print("AccessibilityMonitor: ✅ Polling started - monitoring text selection")
     }
     
     func stopMonitoring() {
@@ -74,44 +71,8 @@ class AccessibilityMonitor: ObservableObject {
         }
         
         let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
-        var selectedTextRef: CFTypeRef?
         
-        let result = AXUIElementCopyAttributeValue(
-            appRef,
-            kAXSelectedTextAttribute as CFString,
-            &selectedTextRef
-        )
-        
-        if result == .success,
-           let text = selectedTextRef as? String,
-           !text.isEmpty,
-           text != lastSelectedText {
-            DispatchQueue.main.async { [weak self] in
-                self?.selectedText = text
-                self?.lastSelectedText = text
-            }
-        }
-    }
-    
-    func getCurrentSelectedText() -> String {
-        guard hasAccessibilityPermission else {
-            print("AccessibilityMonitor: No permissions for getCurrentSelectedText")
-            return ""
-        }
-        
-        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
-            print("AccessibilityMonitor: No frontmost application")
-            return ""
-        }
-        
-        print("AccessibilityMonitor: Frontmost app: \(frontmostApp.localizedName ?? "Unknown") (PID: \(frontmostApp.processIdentifier))")
-        
-        // Try multiple methods to get selected text
-        
-        // Method 1: Try to get focused element first, then get selected text from it
-        let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
-        
-        // First, try to get the focused UI element
+        // Try focused element first
         var focusedElementRef: CFTypeRef?
         let focusResult = AXUIElementCopyAttributeValue(
             appRef,
@@ -120,9 +81,6 @@ class AccessibilityMonitor: ObservableObject {
         )
         
         if focusResult == .success, let focusedElement = focusedElementRef {
-            print("AccessibilityMonitor: Got focused element")
-            
-            // Try to get selected text from focused element
             var selectedTextRef: CFTypeRef?
             let result = AXUIElementCopyAttributeValue(
                 focusedElement as! AXUIElement,
@@ -130,17 +88,22 @@ class AccessibilityMonitor: ObservableObject {
                 &selectedTextRef
             )
             
-            if result == .success, let text = selectedTextRef as? String, !text.isEmpty {
-                print("AccessibilityMonitor: ✅ Got selected text from focused element: '\(text)'")
-                return text.trimmingCharacters(in: .whitespacesAndNewlines)
-            } else {
-                print("AccessibilityMonitor: Failed to get selected text from focused element. Result: \(result.rawValue)")
+            if result == .success,
+               let text = selectedTextRef as? String,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed != cachedSelectedText {
+                    cachedSelectedText = trimmed
+                    DispatchQueue.main.async { [weak self] in
+                        self?.selectedText = trimmed
+                    }
+                    print("AccessibilityMonitor: 📝 Cached selected text: '\(trimmed)'")
+                }
+                return
             }
-        } else {
-            print("AccessibilityMonitor: Failed to get focused element. Result: \(focusResult.rawValue)")
         }
         
-        // Method 2: Try to get selected text directly from application
+        // Try app-level as fallback
         var selectedTextRef: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(
             appRef,
@@ -148,68 +111,77 @@ class AccessibilityMonitor: ObservableObject {
             &selectedTextRef
         )
         
-        if result == .success, let text = selectedTextRef as? String, !text.isEmpty {
-            print("AccessibilityMonitor: ✅ Got selected text from app: '\(text)'")
-            return text.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            print("AccessibilityMonitor: Failed to get selected text from app. Result: \(result.rawValue)")
+        if result == .success,
+           let text = selectedTextRef as? String,
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed != cachedSelectedText {
+                cachedSelectedText = trimmed
+                DispatchQueue.main.async { [weak self] in
+                    self?.selectedText = trimmed
+                }
+                print("AccessibilityMonitor: 📝 Cached selected text: '\(trimmed)'")
+            }
+        }
+    }
+    
+    /// Returns the most recently selected text (cached by the polling timer).
+    /// This is reliable because it captures the text BEFORE any click deselects it.
+    func getCurrentSelectedText() -> String {
+        checkAccessibilityPermission(showPrompt: false)
+        
+        guard hasAccessibilityPermission else {
+            print("AccessibilityMonitor: No permissions for getCurrentSelectedText")
+            return ""
         }
         
-        // Method 3: Try using pasteboard (copy selection)
-        print("AccessibilityMonitor: Trying pasteboard method...")
-        let text = getTextFromPasteboard()
+        // Return the cached selected text from the polling timer.
+        // This is the key fix: we return what was selected BEFORE the click,
+        // not what's selected now (which may be nothing after a click).
+        let text = cachedSelectedText
+        print("AccessibilityMonitor: Returning cached text: '\(text)'")
+        
         if !text.isEmpty {
-            print("AccessibilityMonitor: ✅ Got text from pasteboard: '\(text)'")
             return text
         }
         
-        print("AccessibilityMonitor: ❌ All methods failed to get selected text")
-        return ""
-    }
-    
-    private func getTextFromPasteboard() -> String {
-        print("AccessibilityMonitor: Starting pasteboard method (Cmd+C simulation)")
+        // If cache is empty, try reading live as a last resort
+        print("AccessibilityMonitor: Cache empty, trying live read...")
         
-        // Save current pasteboard contents
-        let pasteboard = NSPasteboard.general
-        let oldContents = pasteboard.string(forType: .string)
-        print("AccessibilityMonitor: Old pasteboard contents: '\(oldContents ?? "nil")'")
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+            return ""
+        }
         
-        // Clear pasteboard first to ensure we get fresh content
-        pasteboard.clearContents()
+        let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
         
-        // Simulate Cmd+C to copy selection
-        let source = CGEventSource(stateID: .hidSystemState)
+        var focusedElementRef: CFTypeRef?
+        let focusResult = AXUIElementCopyAttributeValue(
+            appRef,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElementRef
+        )
         
-        // Press Cmd+C (C key = 0x08)
-        let cmdCDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true)
-        cmdCDown?.flags = .maskCommand
-        let cmdCUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false)
-        cmdCUp?.flags = .maskCommand
-        
-        print("AccessibilityMonitor: Posting Cmd+C events...")
-        cmdCDown?.post(tap: .cghidEventTap)
-        Thread.sleep(forTimeInterval: 0.02) // Small delay between down and up
-        cmdCUp?.post(tap: .cghidEventTap)
-        
-        // Wait for copy to complete
-        Thread.sleep(forTimeInterval: 0.1)
-        
-        // Get the new pasteboard contents
-        let newContents = pasteboard.string(forType: .string) ?? ""
-        print("AccessibilityMonitor: New pasteboard contents: '\(newContents)'")
-        
-        // Restore old pasteboard contents
-        if let oldContents = oldContents {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                pasteboard.clearContents()
-                pasteboard.setString(oldContents, forType: .string)
-                print("AccessibilityMonitor: Restored old pasteboard contents")
+        if focusResult == .success, let focusedElement = focusedElementRef {
+            var selectedTextRef: CFTypeRef?
+            let result = AXUIElementCopyAttributeValue(
+                focusedElement as! AXUIElement,
+                kAXSelectedTextAttribute as CFString,
+                &selectedTextRef
+            )
+            
+            if result == .success, let liveText = selectedTextRef as? String, !liveText.isEmpty {
+                print("AccessibilityMonitor: ✅ Got live text: '\(liveText)'")
+                return liveText.trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
         
-        let result = newContents.trimmingCharacters(in: .whitespacesAndNewlines)
-        print("AccessibilityMonitor: Pasteboard method result: '\(result)'")
-        return result
+        print("AccessibilityMonitor: ❌ No text available")
+        return ""
+    }
+    
+    /// Clear the cached text after a successful lookup
+    func clearCache() {
+        cachedSelectedText = ""
+        selectedText = ""
     }
 }

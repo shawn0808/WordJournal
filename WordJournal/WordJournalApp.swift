@@ -38,51 +38,72 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showJournal() {
-        if journalWindow == nil || !journalWindow!.isVisible {
-            let contentView = JournalView()
-                .environmentObject(JournalStorage.shared)
-            
-            let hostingView = NSHostingView(rootView: contentView)
-            hostingView.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
-            
-            journalWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-            journalWindow?.title = "Word Journal"
-            journalWindow?.contentView = hostingView
-            journalWindow?.center()
+        // Check if window exists and is still valid
+        if let window = journalWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
         }
-        journalWindow?.makeKeyAndOrderFront(nil)
+        
+        // Create new window
+        let contentView = JournalView()
+            .environmentObject(JournalStorage.shared)
+        
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Word Journal"
+        window.contentView = hostingView
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        journalWindow = window
         NSApp.activate(ignoringOtherApps: true)
     }
     
     func showPreferences() {
-        if preferencesWindow == nil || !preferencesWindow!.isVisible {
-            let contentView = PreferencesView()
-                .environmentObject(TriggerManager.shared)
-            
-            let hostingView = NSHostingView(rootView: contentView)
-            hostingView.frame = NSRect(x: 0, y: 0, width: 500, height: 400)
-            
-            preferencesWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
-                styleMask: [.titled, .closable],
-                backing: .buffered,
-                defer: false
-            )
-            preferencesWindow?.title = "Preferences"
-            preferencesWindow?.contentView = hostingView
-            preferencesWindow?.center()
+        // Check if window exists and is still valid
+        if let window = preferencesWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
         }
-        preferencesWindow?.makeKeyAndOrderFront(nil)
+        
+        // Create new window
+        let contentView = PreferencesView()
+            .environmentObject(TriggerManager.shared)
+        
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 500, height: 400)
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Preferences"
+        window.contentView = hostingView
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        preferencesWindow = window
         NSApp.activate(ignoringOtherApps: true)
     }
     
     func handleLookup() {
         print("AppDelegate: handleLookup() called")
+        
+        // Check permissions first
+        AccessibilityMonitor.shared.checkAccessibilityPermission(showPrompt: false)
+        print("AppDelegate: Accessibility permission status: \(AccessibilityMonitor.shared.hasAccessibilityPermission)")
+        
         let selectedText = AccessibilityMonitor.shared.getCurrentSelectedText()
         print("AppDelegate: Selected text: '\(selectedText)'")
         
@@ -92,7 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 alert.messageText = "No Text Selected"
-                alert.informativeText = "Please select a word first, then press Cmd+Shift+Option+D"
+                alert.informativeText = "Please select a word first, then Shift+Click to look it up"
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -133,12 +154,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showDefinitionPopup(word: String, definition: DictionaryResult) {
+        print("AppDelegate: showDefinitionPopup() for '\(word)'")
+        
         // Close existing popup if any
         popupWindow?.close()
         
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 400),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.titled, .closable, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -146,22 +169,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isFloatingPanel = true
-        panel.backgroundColor = .clear
+        panel.titlebarAppearsTransparent = true
+        panel.titleVisibility = .hidden
+        panel.backgroundColor = NSColor.windowBackgroundColor
         panel.isOpaque = false
         panel.hasShadow = true
+        panel.isMovableByWindowBackground = true
+        // Allow the panel to become key so buttons work
+        panel.becomesKeyOnlyIfNeeded = true
         
         // Position near cursor
         if let screen = NSScreen.main {
             let mouseLocation = NSEvent.mouseLocation
-            let screenHeight = screen.frame.height
-            let y = screenHeight - mouseLocation.y - 200
-            panel.setFrameOrigin(NSPoint(x: mouseLocation.x, y: y))
+            let panelWidth: CGFloat = 400
+            let panelHeight: CGFloat = 400
+            
+            // Position to the right and slightly below the cursor
+            var x = mouseLocation.x + 10
+            var y = mouseLocation.y - panelHeight - 10
+            
+            // Keep on screen
+            if x + panelWidth > screen.visibleFrame.maxX {
+                x = mouseLocation.x - panelWidth - 10
+            }
+            if y < screen.visibleFrame.minY {
+                y = mouseLocation.y + 10
+            }
+            
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
         
         let popupView = DefinitionPopupView(
             word: word,
             result: definition,
             onAddToJournal: {
+                print("AppDelegate: 'Add to Journal' button clicked!")
                 self.addToJournal(word: word, definition: definition)
                 panel.close()
             },
@@ -174,6 +216,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.contentView = hostingView
         panel.contentView?.frame = NSRect(x: 0, y: 0, width: 400, height: 400)
         
+        // Activate the app so the panel can receive clicks
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         popupWindow = panel
         
@@ -186,19 +230,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func addToJournal(word: String, definition: DictionaryResult) {
+        print("AppDelegate: addToJournal() called for word: '\(word)'")
+        
         let firstMeaning = definition.meanings.first
         let firstDefinition = firstMeaning?.definitions.first
         
+        let defText = firstDefinition?.definition ?? "No definition available"
+        let posText = firstMeaning?.partOfSpeech ?? "unknown"
+        let exText = firstDefinition?.example ?? ""
+        
+        print("AppDelegate: Definition: '\(defText)'")
+        print("AppDelegate: Part of speech: '\(posText)'")
+        
         let entry = WordEntry(
             word: word,
-            definition: firstDefinition?.definition ?? definition.meanings.first?.definitions.first?.definition ?? "No definition available",
-            partOfSpeech: firstMeaning?.partOfSpeech ?? "unknown",
-            example: firstDefinition?.example ?? "",
+            definition: defText,
+            partOfSpeech: posText,
+            example: exText,
             dateLookedUp: Date(),
             notes: ""
         )
         
         JournalStorage.shared.addEntry(entry)
+        print("AppDelegate: ✅ addToJournal() complete")
     }
 }
 

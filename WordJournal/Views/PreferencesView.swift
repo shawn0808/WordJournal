@@ -55,79 +55,20 @@ struct PreferencesView: View {
                 
                 Divider()
                 
-                // Trigger Mode Selection
+                // Activation Method
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Activation Method")
                         .font(.headline)
                     
-                    Picker("Trigger Mode", selection: $triggerManager.triggerMode) {
-                        ForEach(TriggerMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: triggerManager.triggerMode) { _ in
-                        triggerManager.setupTriggers()
-                    }
-                    
-                    // Show appropriate description based on mode
-                    switch triggerManager.triggerMode {
-                    case .threeFingerTap:
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("3-finger tap to lookup", systemImage: "hand.tap.fill")
-                                .foregroundColor(.blue)
-                            Text("Select text and tap with 3 fingers to see the definition")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("Note: May conflict with macOS Look Up gesture")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
-                        
-                    case .controlClick:
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Control+Click to lookup", systemImage: "cursorarrow.click")
-                                .foregroundColor(.blue)
-                            Text("Select text and Control+Click (or right-click) to see the definition")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("⭐ Recommended: Most reliable method")
-                                .font(.caption2)
-                                .foregroundColor(.green)
-                        }
-                        
-                    case .keyboard:
-                        VStack(alignment: .leading, spacing: 8) {
-                            Toggle("Enable Keyboard Shortcut", isOn: $triggerManager.hotKeyEnabled)
-                                .onChange(of: triggerManager.hotKeyEnabled) { _ in
-                                    triggerManager.setupTriggers()
-                                }
-                            
-                            if triggerManager.hotKeyEnabled {
-                                HStack {
-                                    Text("Current shortcut:")
-                                    
-                                    Text(formatModifiers(triggerManager.modifierFlags) + "+" + keyCodeToString(triggerManager.keyCode))
-                                        .font(.system(.body, design: .monospaced))
-                                        .padding(4)
-                                        .background(Color(NSColor.controlBackgroundColor))
-                                        .cornerRadius(4)
-                                }
-                                
-                                Text("Default: ⌘⇧⌥D (Cmd+Shift+Option+D)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                    case .both:
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Multiple activation methods", systemImage: "hand.tap.fill")
-                                .foregroundColor(.blue)
-                            Text("Use gesture OR keyboard shortcut (Cmd+Shift+Option+D)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Shift+Click to lookup", systemImage: "cursorarrow.click")
+                            .foregroundColor(.blue)
+                        Text("Select text, then Shift+Click to see the definition")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("Simple: select a word, hold Shift, click!")
+                            .font(.caption2)
+                            .foregroundColor(.green)
                     }
                     
                     // Show monitor status
