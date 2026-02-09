@@ -1,0 +1,72 @@
+[
+  {
+    "word": "serendipity",
+    "phonetic": "/ˌserənˈdipitē/",
+    "partOfSpeech": "noun",
+    "definition": "the occurrence and development of events by chance in a happy or beneficial way",
+    "example": "A fortunate stroke of serendipity brought the two old friends together."
+  },
+  {
+    "word": "ephemeral",
+    "phonetic": "/əˈfem(ə)rəl/",
+    "partOfSpeech": "adjective",
+    "definition": "lasting for a very short time",
+    "example": "Fashions are ephemeral; new ones regularly drive out the old."
+  },
+  {
+    "word": "eloquent",
+    "phonetic": "/ˈeləkwənt/",
+    "partOfSpeech": "adjective",
+    "definition": "fluent or persuasive in speaking or writing",
+    "example": "She was an eloquent speaker, able to move and inspire audiences."
+  },
+  {
+    "word": "meticulous",
+    "phonetic": "/məˈtikyələs/",
+    "partOfSpeech": "adjective",
+    "definition": "showing great attention to detail; very careful and precise",
+    "example": "He was meticulous about following the instructions exactly."
+  },
+  {
+    "word": "resilient",
+    "phonetic": "/rəˈzilyənt/",
+    "partOfSpeech": "adjective",
+    "definition": "able to withstand or recover quickly from difficult conditions",
+    "example": "The community proved resilient in the face of adversity."
+  },
+  {
+    "word": "ubiquitous",
+    "phonetic": "/yo͞oˈbikwətəs/",
+    "partOfSpeech": "adjective",
+    "definition": "present, appearing, or found everywhere",
+    "example": "Coffee shops are ubiquitous in modern cities."
+  },
+  {
+    "word": "paradigm",
+    "phonetic": "/ˈperəˌdīm/",
+    "partOfSpeech": "noun",
+    "definition": "a typical example or pattern of something; a model",
+    "example": "This discovery represents a paradigm shift in our understanding."
+  },
+  {
+    "word": "enigmatic",
+    "phonetic": "/ˌeniɡˈmatik/",
+    "partOfSpeech": "adjective",
+    "definition": "difficult to interpret or understand; mysterious",
+    "example": "She gave an enigmatic smile that revealed nothing."
+  },
+  {
+    "word": "pragmatic",
+    "phonetic": "/praɡˈmatik/",
+    "partOfSpeech": "adjective",
+    "definition": "dealing with things sensibly and realistically in a way that is based on practical rather than theoretical considerations",
+    "example": "A pragmatic approach to problem-solving often yields the best results."
+  },
+  {
+    "word": "quintessential",
+    "phonetic": "/ˌkwin(t)əˈsen(t)SHəl/",
+    "partOfSpeech": "adjective",
+    "definition": "representing the most perfect example of a quality or class",
+    "example": "He was the quintessential gentleman, always polite and well-mannered."
+  }
+]

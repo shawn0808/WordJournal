@@ -1,0 +1,409 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D531270D9D5C437DA803F9A0 /* WordJournalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */; };
+		742C5EEE6468442DB10D40CB /* WordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98F646E3FB334B6F99E85287 /* WordEntry.swift */; };
+		EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1109AD88FEC84218AE0E961D /* DictionaryResult.swift */; };
+		896695BCD1244D6F8AF55764 /* AccessibilityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */; };
+		885C99B6C3534522B4C6D2ED /* DictionaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5FC24D207C4C53BBCD6028 /* DictionaryService.swift */; };
+		2D056364BC6F49FAAC558F04 /* JournalStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432AB30015D14538984D94CC /* JournalStorage.swift */; };
+		23FDCA23F58E4DF5B1FAC66D /* DefinitionPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529DC1575D12445FA137B024 /* DefinitionPopupView.swift */; };
+		9027BC847EB347E4A79E2116 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD5DA03865341129EA1B8C6 /* JournalView.swift */; };
+		8A3542EBAE7B41E7A463FCE3 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01D6E11C5784C71890C9A2E /* MenuBarView.swift */; };
+		2C02DECC3CB9480B954AB313 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A16CDA83D74E4E2B9F6F93F3 /* PreferencesView.swift */; };
+		AC42E754193F4EED94288ED2 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76381B53102142D7AA0B8E8D /* HotKeyManager.swift */; };
+		BC1F851B5C75430DBC5D2350 /* dictionary.json in Resources */ = {isa = PBXBuildFile; fileRef = 2BD3632E032E41489F61B78C /* dictionary.json */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		8A9B631F69B34B608873B19B /* WordJournal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WordJournal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordJournalApp.swift; sourceTree = "<group>"; };
+		98F646E3FB334B6F99E85287 /* WordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordEntry.swift; sourceTree = "<group>"; };
+		1109AD88FEC84218AE0E961D /* DictionaryResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryResult.swift; sourceTree = "<group>"; };
+		103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMonitor.swift; sourceTree = "<group>"; };
+		7D5FC24D207C4C53BBCD6028 /* DictionaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryService.swift; sourceTree = "<group>"; };
+		432AB30015D14538984D94CC /* JournalStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStorage.swift; sourceTree = "<group>"; };
+		529DC1575D12445FA137B024 /* DefinitionPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefinitionPopupView.swift; sourceTree = "<group>"; };
+		0BD5DA03865341129EA1B8C6 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		D01D6E11C5784C71890C9A2E /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		A16CDA83D74E4E2B9F6F93F3 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
+		76381B53102142D7AA0B8E8D /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
+		22D96B08AF9B4569AF503B82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2BD3632E032E41489F61B78C /* dictionary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dictionary.json; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2067D19D67BE4F6E930EED8B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D306DDC2FBBE48DFABF991EE = {
+			isa = PBXGroup;
+			children = (
+				69DCAF5DAF1E4120B647C291 /* WordJournal */,
+				7E6FE929BAE54097B612536D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		69DCAF5DAF1E4120B647C291 /* WordJournal */ = {
+			isa = PBXGroup;
+			children = (
+				E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */,
+				22D96B08AF9B4569AF503B82 /* Info.plist */,
+				5536886D24084B7F9EE6CA3F /* Models */,
+				11D5AE2425E940EE8BF13DD2 /* Services */,
+				732F74AEB0FF4A949949094E /* Views */,
+				C2F186A5A6C5493AB2E537D2 /* Utilities */,
+				E987092C0119445883F797E8 /* Resources */,
+			);
+			path = WordJournal;
+			sourceTree = "<group>";
+		};
+		5536886D24084B7F9EE6CA3F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				98F646E3FB334B6F99E85287 /* WordEntry.swift */,
+				1109AD88FEC84218AE0E961D /* DictionaryResult.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		11D5AE2425E940EE8BF13DD2 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */,
+				7D5FC24D207C4C53BBCD6028 /* DictionaryService.swift */,
+				432AB30015D14538984D94CC /* JournalStorage.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		732F74AEB0FF4A949949094E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				529DC1575D12445FA137B024 /* DefinitionPopupView.swift */,
+				0BD5DA03865341129EA1B8C6 /* JournalView.swift */,
+				D01D6E11C5784C71890C9A2E /* MenuBarView.swift */,
+				A16CDA83D74E4E2B9F6F93F3 /* PreferencesView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		C2F186A5A6C5493AB2E537D2 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				76381B53102142D7AA0B8E8D /* HotKeyManager.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		E987092C0119445883F797E8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2BD3632E032E41489F61B78C /* dictionary.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7E6FE929BAE54097B612536D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8A9B631F69B34B608873B19B /* WordJournal.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CB0FDFF403724FEF8D0FCF46 /* WordJournal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D393C64197A94ACAA8B094C0 /* Build configuration list for PBXNativeTarget "WordJournal" */;
+			buildPhases = (
+				5FD3A17E27E64AEA82A58C0B /* Sources */,
+				2067D19D67BE4F6E930EED8B /* Frameworks */,
+				0193ECEA8D5642FD983B95B6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WordJournal;
+			productName = WordJournal;
+			productReference = 8A9B631F69B34B608873B19B /* WordJournal.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		73B1E2CFEF564DFD85899AA2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					CB0FDFF403724FEF8D0FCF46 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A41D9F7744A941568BEA316F /* Build configuration list for PBXProject "WordJournal" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D306DDC2FBBE48DFABF991EE;
+			productRefGroup = 7E6FE929BAE54097B612536D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CB0FDFF403724FEF8D0FCF46 /* WordJournal */,
+			);
+		};
+/* End PBXProject section */
+
+		/* Begin PBXResourcesBuildPhase section */
+		0193ECEA8D5642FD983B95B6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC1F851B5C75430DBC5D2350 /* dictionary.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5FD3A17E27E64AEA82A58C0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D531270D9D5C437DA803F9A0 /* WordJournalApp.swift in Sources */,
+				742C5EEE6468442DB10D40CB /* WordEntry.swift in Sources */,
+				EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */,
+				896695BCD1244D6F8AF55764 /* AccessibilityMonitor.swift in Sources */,
+				885C99B6C3534522B4C6D2ED /* DictionaryService.swift in Sources */,
+				2D056364BC6F49FAAC558F04 /* JournalStorage.swift in Sources */,
+				23FDCA23F58E4DF5B1FAC66D /* DefinitionPopupView.swift in Sources */,
+				9027BC847EB347E4A79E2116 /* JournalView.swift in Sources */,
+				8A3542EBAE7B41E7A463FCE3 /* MenuBarView.swift in Sources */,
+				2C02DECC3CB9480B954AB313 /* PreferencesView.swift in Sources */,
+				AC42E754193F4EED94288ED2 /* HotKeyManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A6707201D5A94A6BA40FF105 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		8EC105BF9B4F45EA9932A959 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		C39475B065DD4AB8AED783C9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WordJournal/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wordjournal.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E7A17DA433624C22A10CF4FD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WordJournal/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wordjournal.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D393C64197A94ACAA8B094C0 /* Build configuration list for PBXNativeTarget "WordJournal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6707201D5A94A6BA40FF105 /* Debug */,
+				8EC105BF9B4F45EA9932A959 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A41D9F7744A941568BEA316F /* Build configuration list for PBXProject "WordJournal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C39475B065DD4AB8AED783C9 /* Debug */,
+				E7A17DA433624C22A10CF4FD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 73B1E2CFEF564DFD85899AA2 /* Project object */;
+}
