@@ -14,8 +14,49 @@ class DictionaryService: ObservableObject {
     private var cache: [String: DictionaryResult] = [:]
     private let cacheQueue = DispatchQueue(label: "com.wordjournal.cache")
     
+    // Persistent file-based cache directory
+    private static let persistentCacheDir: URL = {
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let dir = caches.appendingPathComponent("WordJournal/dictionary", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+    
     private init() {
-        loadLocalDictionary()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.loadPersistentCache()
+            self?.loadLocalDictionary()
+        }
+    }
+    
+    // MARK: - Persistent cache
+    
+    private func persistentCacheURL(for word: String) -> URL {
+        let sanitized = word.lowercased().replacingOccurrences(of: "[^a-z0-9]", with: "_", options: .regularExpression)
+        return Self.persistentCacheDir.appendingPathComponent("\(sanitized).json")
+    }
+    
+    private func loadPersistentCache() {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: Self.persistentCacheDir, includingPropertiesForKeys: nil) else { return }
+        
+        var loaded = 0
+        for file in files where file.pathExtension == "json" {
+            if let data = try? Data(contentsOf: file),
+               let result = try? JSONDecoder().decode(DictionaryResult.self, from: data) {
+                let word = result.word.lowercased()
+                cache[word] = result
+                loaded += 1
+            }
+        }
+        print("DictionaryService: Loaded \(loaded) entries from persistent cache")
+    }
+    
+    private func saveToPersistentCache(word: String, result: DictionaryResult) {
+        let url = persistentCacheURL(for: word)
+        if let data = try? JSONEncoder().encode(result) {
+            try? data.write(to: url)
+        }
     }
     
     private func loadLocalDictionary() {
@@ -95,6 +136,7 @@ class DictionaryService: ObservableObject {
             case .success(let apiResult):
                 self?.cacheQueue.async {
                     self?.cache[normalizedWord] = apiResult
+                    self?.saveToPersistentCache(word: normalizedWord, result: apiResult)
                 }
                 DispatchQueue.main.async {
                     completion(.success(apiResult))
@@ -115,7 +157,7 @@ class DictionaryService: ObservableObject {
         }
         
         var request = URLRequest(url: url)
-        request.timeoutInterval = 10.0
+        request.timeoutInterval = 5.0
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {

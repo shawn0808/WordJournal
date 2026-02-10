@@ -125,7 +125,21 @@ class PronunciationPlayer: NSObject, ObservableObject {
     
     private var downloadTask: URLSessionDataTask?
     
-    /// Play pronunciation: try API audio URL first, fall back to Google TTS
+    // Audio cache directory
+    private static let cacheDirectory: URL = {
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let audioCache = caches.appendingPathComponent("WordJournal/audio", isDirectory: true)
+        try? FileManager.default.createDirectory(at: audioCache, withIntermediateDirectories: true)
+        return audioCache
+    }()
+    
+    /// Get cached file URL for a word
+    private func cacheURL(for word: String) -> URL {
+        let sanitized = word.lowercased().replacingOccurrences(of: "[^a-z0-9]", with: "_", options: .regularExpression)
+        return Self.cacheDirectory.appendingPathComponent("\(sanitized).mp3")
+    }
+    
+    /// Play pronunciation: try cache first, then API audio URL, fall back to Google TTS
     func pronounce(word: String, audioURL: URL?) {
         guard !isPlaying else {
             print("PronunciationPlayer: Already playing, ignoring")
@@ -150,14 +164,26 @@ class PronunciationPlayer: NSObject, ObservableObject {
         
         // Try each URL on a background thread
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
             var played = false
             
-            for url in urlsToTry {
-                print("PronunciationPlayer: Trying audio from \(url.host ?? url.absoluteString)")
-                
-                if self?.downloadAndPlay(url: url) == true {
+            // Check cache first
+            let cached = self.cacheURL(for: word)
+            if FileManager.default.fileExists(atPath: cached.path) {
+                print("PronunciationPlayer: ✅ Playing from cache for '\(word)'")
+                if self.playFile(at: cached) {
                     played = true
-                    break
+                }
+            }
+            
+            if !played {
+                for url in urlsToTry {
+                    print("PronunciationPlayer: Trying audio from \(url.host ?? url.absoluteString)")
+                    
+                    if self.downloadAndPlay(url: url, cacheAs: word) {
+                        played = true
+                        break
+                    }
                 }
             }
             
@@ -166,7 +192,7 @@ class PronunciationPlayer: NSObject, ObservableObject {
             }
             
             DispatchQueue.main.async {
-                self?.isPlaying = false
+                self.isPlaying = false
             }
         }
     }
@@ -174,10 +200,27 @@ class PronunciationPlayer: NSObject, ObservableObject {
     /// Download audio from URL and play with afplay. Returns true if successful.
     /// Synchronous download and play — can be called from background thread
     func downloadAndPlaySync(url: URL) -> Bool {
-        return downloadAndPlay(url: url)
+        return downloadAndPlay(url: url, cacheAs: nil)
     }
     
-    private func downloadAndPlay(url: URL) -> Bool {
+    /// Play an audio file using afplay. Returns true if successful.
+    private func playFile(at fileURL: URL) -> Bool {
+        do {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
+            process.arguments = [fileURL.path]
+            
+            try process.run()
+            process.waitUntilExit()
+            
+            return process.terminationStatus == 0
+        } catch {
+            print("PronunciationPlayer: afplay failed: \(error)")
+            return false
+        }
+    }
+    
+    private func downloadAndPlay(url: URL, cacheAs word: String?) -> Bool {
         let semaphore = DispatchSemaphore(value: 0)
         var audioData: Data?
         
@@ -199,29 +242,29 @@ class PronunciationPlayer: NSObject, ObservableObject {
             return false
         }
         
+        // Save to cache if word is provided
+        if let word = word {
+            let cached = cacheURL(for: word)
+            try? data.write(to: cached)
+            print("PronunciationPlayer: 💾 Cached audio for '\(word)'")
+        }
+        
         // Save to temp file and play with afplay
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("wordjournal_pronunciation.mp3")
         do {
             try data.write(to: tempURL)
             
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
-            process.arguments = [tempURL.path]
-            
-            try process.run()
-            process.waitUntilExit()
-            
-            let success = process.terminationStatus == 0
+            let success = playFile(at: tempURL)
             if success {
                 print("PronunciationPlayer: ✅ Played audio from \(url.host ?? "unknown")")
             } else {
-                print("PronunciationPlayer: afplay exited with status \(process.terminationStatus)")
+                print("PronunciationPlayer: afplay exited with non-zero status")
             }
             
             try? FileManager.default.removeItem(at: tempURL)
             return success
         } catch {
-            print("PronunciationPlayer: afplay failed: \(error)")
+            print("PronunciationPlayer: Failed to write temp file: \(error)")
             try? FileManager.default.removeItem(at: tempURL)
             return false
         }

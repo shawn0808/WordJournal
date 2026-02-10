@@ -14,9 +14,11 @@ class AccessibilityMonitor: ObservableObject {
     @Published var selectedText: String = ""
     @Published var hasAccessibilityPermission: Bool = false
     
-    private var timer: Timer?
+    private var timer: DispatchSourceTimer?
+    private let pollingQueue = DispatchQueue(label: "com.wordjournal.polling", qos: .utility)
     
     // Cache with app tracking (Option 3)
+    private let cacheLock = NSLock()
     private var cachedSelectedText: String = ""
     private var cachedFromAppPID: pid_t = 0
     private var nonAXApps: Set<pid_t> = []  // PIDs of apps where AX API failed (e.g., PDF viewers)
@@ -55,15 +57,19 @@ class AccessibilityMonitor: ObservableObject {
         
         stopMonitoring()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        let source = DispatchSource.makeTimerSource(queue: pollingQueue)
+        source.schedule(deadline: .now(), repeating: 0.5)
+        source.setEventHandler { [weak self] in
             self?.pollSelectedText()
         }
+        source.resume()
+        timer = source
         
-        print("AccessibilityMonitor: ✅ Polling started - monitoring text selection")
+        print("AccessibilityMonitor: ✅ Polling started on background thread")
     }
     
     func stopMonitoring() {
-        timer?.invalidate()
+        timer?.cancel()
         timer = nil
     }
     
@@ -79,9 +85,15 @@ class AccessibilityMonitor: ObservableObject {
         // Try Accessibility API to get selected text
         if let text = readSelectedTextViaAccessibility(pid: pid) {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty && (trimmed != cachedSelectedText || pid != cachedFromAppPID) {
+            cacheLock.lock()
+            let isDifferent = !trimmed.isEmpty && (trimmed != cachedSelectedText || pid != cachedFromAppPID)
+            if isDifferent {
                 cachedSelectedText = trimmed
                 cachedFromAppPID = pid
+            }
+            cacheLock.unlock()
+            
+            if isDifferent {
                 DispatchQueue.main.async { [weak self] in
                     self?.selectedText = trimmed
                 }
@@ -110,15 +122,21 @@ class AccessibilityMonitor: ObservableObject {
         let currentPID = frontmostApp.processIdentifier
         let appName = frontmostApp.localizedName ?? "Unknown"
         
+        cacheLock.lock()
+        let currentCache = cachedSelectedText
+        let currentCachePID = cachedFromAppPID
+        let isNonAX = nonAXApps.contains(currentPID)
+        cacheLock.unlock()
+        
         print("AccessibilityMonitor: getCurrentSelectedText() - App: \(appName) (PID: \(currentPID))")
-        print("AccessibilityMonitor: Cache: '\(cachedSelectedText)' from PID: \(cachedFromAppPID)")
+        print("AccessibilityMonitor: Cache: '\(currentCache)' from PID: \(currentCachePID)")
         
         // Option 3: Check if cached text is from the SAME app
         // BUT skip cache for apps where AX API doesn't work (e.g., PDF viewers)
         // because the polling can't update the cache for those apps
-        if !cachedSelectedText.isEmpty && cachedFromAppPID == currentPID && !nonAXApps.contains(currentPID) {
-            print("AccessibilityMonitor: ✅ Using cached text (same app): '\(cachedSelectedText)'")
-            return cachedSelectedText
+        if !currentCache.isEmpty && currentCachePID == currentPID && !isNonAX {
+            print("AccessibilityMonitor: ✅ Using cached text (same app): '\(currentCache)'")
+            return currentCache
         }
         
         // Cache is stale (different app) or empty.
@@ -127,14 +145,18 @@ class AccessibilityMonitor: ObservableObject {
             let trimmed = liveText.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 print("AccessibilityMonitor: ✅ Got live text from Accessibility API: '\(trimmed)'")
+                cacheLock.lock()
                 cachedSelectedText = trimmed
                 cachedFromAppPID = currentPID
+                cacheLock.unlock()
                 return trimmed
             }
         }
         
         // Mark this app as non-AX so we don't use stale cache for it next time
+        cacheLock.lock()
         nonAXApps.insert(currentPID)
+        cacheLock.unlock()
         
         // Option 2 fallback: Accessibility API failed (e.g., Preview, Chrome, etc.)
         // Use pasteboard method (simulate Cmd+C)
@@ -142,8 +164,10 @@ class AccessibilityMonitor: ObservableObject {
         let pasteboardText = getTextFromPasteboard()
         if !pasteboardText.isEmpty {
             print("AccessibilityMonitor: ✅ Got text from pasteboard: '\(pasteboardText)'")
+            cacheLock.lock()
             cachedSelectedText = pasteboardText
             cachedFromAppPID = currentPID
+            cacheLock.unlock()
             return pasteboardText
         }
         
@@ -212,11 +236,11 @@ class AccessibilityMonitor: ObservableObject {
         cmdCUp?.flags = .maskCommand
         
         cmdCDown?.post(tap: .cghidEventTap)
-        Thread.sleep(forTimeInterval: 0.05)
+        Thread.sleep(forTimeInterval: 0.03)
         cmdCUp?.post(tap: .cghidEventTap)
         
         // Wait for copy to complete
-        Thread.sleep(forTimeInterval: 0.2)
+        Thread.sleep(forTimeInterval: 0.12)
         
         let newContents = pasteboard.string(forType: .string) ?? ""
         
@@ -234,8 +258,10 @@ class AccessibilityMonitor: ObservableObject {
     // MARK: - Cache management
     
     func clearCache() {
+        cacheLock.lock()
         cachedSelectedText = ""
         cachedFromAppPID = 0
+        cacheLock.unlock()
         selectedText = ""
     }
 }
