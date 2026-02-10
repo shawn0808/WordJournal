@@ -11,10 +11,11 @@ import AppKit
 struct DefinitionPopupView: View {
     let word: String
     let result: DictionaryResult
-    let onAddToJournal: () -> Void
+    let onAddToJournal: (String, String, String) -> Void  // (definition, partOfSpeech, example)
     let onDismiss: () -> Void
     
     @State private var isHovered = false
+    @State private var addedDefinitions: Set<String> = []  // Track which definitions have been added
     @StateObject private var audioPlayer = PronunciationPlayer()
     
     /// Find the first available audio URL from phonetics
@@ -33,11 +34,19 @@ struct DefinitionPopupView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text(word.capitalized)
+                Text(word.contains(" ") ? word : word.capitalized)
                     .font(.title2)
                     .fontWeight(.bold)
                 
-                if let phonetic = result.phonetic ?? result.phonetics?.first?.text {
+                if word.contains(" ") {
+                    Text("phrase")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.7))
+                        .cornerRadius(4)
+                } else if let phonetic = result.phonetic ?? result.phonetics?.first?.text {
                     Text("[\(phonetic)]")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -66,7 +75,7 @@ struct DefinitionPopupView: View {
             Divider()
             
             // Meanings
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     ForEach(Array(result.meanings.enumerated()), id: \.offset) { _, meaning in
                         VStack(alignment: .leading, spacing: 8) {
@@ -75,17 +84,41 @@ struct DefinitionPopupView: View {
                                 .foregroundColor(.blue)
                             
                             ForEach(Array(meaning.definitions.enumerated()), id: \.offset) { idx, definition in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("\(idx + 1). \(definition.definition)")
-                                        .font(.body)
-                                    
-                                    if let example = definition.example {
-                                        Text("\"\(example)\"")
-                                            .font(.caption)
-                                            .italic()
-                                            .foregroundColor(.secondary)
-                                            .padding(.leading, 8)
+                                let defKey = "\(meaning.partOfSpeech):\(idx)"
+                                let isAdded = addedDefinitions.contains(defKey)
+                                
+                                HStack(alignment: .top, spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("\(idx + 1). \(definition.definition)")
+                                            .font(.body)
+                                        
+                                        if let example = definition.example {
+                                            Text("\"\(example)\"")
+                                                .font(.caption)
+                                                .italic()
+                                                .foregroundColor(.secondary)
+                                                .padding(.leading, 8)
+                                        }
                                     }
+                                    
+                                    Spacer()
+                                    
+                                    // Add button for this specific definition
+                                    Button(action: {
+                                        addedDefinitions.insert(defKey)
+                                        onAddToJournal(
+                                            definition.definition,
+                                            meaning.partOfSpeech,
+                                            definition.example ?? ""
+                                        )
+                                    }) {
+                                        Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle.fill")
+                                            .foregroundColor(isAdded ? .green : .blue)
+                                            .font(.title3)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help(isAdded ? "Added to Journal" : "Add this definition to Journal")
+                                    .disabled(isAdded)
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -94,18 +127,6 @@ struct DefinitionPopupView: View {
                 }
             }
             .frame(maxHeight: 300)
-            
-            Divider()
-            
-            // Actions
-            HStack {
-                Button("Add to Journal") {
-                    onAddToJournal()
-                }
-                .buttonStyle(.borderedProminent)
-                
-                Spacer()
-            }
         }
         .padding()
         .frame(width: 400)

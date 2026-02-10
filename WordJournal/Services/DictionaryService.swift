@@ -130,7 +130,7 @@ class DictionaryService: ObservableObject {
             return
         }
         
-        // Fallback to API
+        // Fallback to APIs
         fetchFromAPI(word: normalizedWord) { [weak self] result in
             switch result {
             case .success(let apiResult):
@@ -141,13 +141,121 @@ class DictionaryService: ObservableObject {
                 DispatchQueue.main.async {
                     completion(.success(apiResult))
                 }
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+            case .failure(_):
+                // Dictionary API failed — try Wiktionary as fallback
+                print("DictionaryService: Primary API failed for '\(normalizedWord)', trying Wiktionary...")
+                self?.fetchFromWiktionary(word: normalizedWord) { wiktResult in
+                    switch wiktResult {
+                    case .success(let wiktApiResult):
+                        self?.cacheQueue.async {
+                            self?.cache[normalizedWord] = wiktApiResult
+                            self?.saveToPersistentCache(word: normalizedWord, result: wiktApiResult)
+                        }
+                        DispatchQueue.main.async {
+                            completion(.success(wiktApiResult))
+                        }
+                    case .failure(let wiktError):
+                        print("DictionaryService: Wiktionary also failed for '\(normalizedWord)'")
+                        DispatchQueue.main.async {
+                            completion(.failure(wiktError))
+                        }
+                    }
                 }
             }
         }
     }
+    
+    // MARK: - Wiktionary API (fallback for phrases and uncommon words)
+    
+    private func fetchFromWiktionary(word: String, completion: @escaping (Result<DictionaryResult, Error>) -> Void) {
+        // Wiktionary uses underscores for spaces in URLs
+        let wiktWord = word.replacingOccurrences(of: " ", with: "_")
+        guard let encodedWord = wiktWord.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "https://en.wiktionary.org/api/rest_v1/page/definition/\(encodedWord)") else {
+            completion(.failure(NSError(domain: "DictionaryService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid word or URL for Wiktionary"])))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5.0
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "DictionaryService", code: code, userInfo: [NSLocalizedDescriptionKey: "Wiktionary: word/phrase not found"])))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "DictionaryService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Wiktionary: no data"])))
+                return
+            }
+            
+            do {
+                let wiktResponse = try JSONDecoder().decode(WiktionaryResponse.self, from: data)
+                
+                // Convert Wiktionary format → our DictionaryResult format
+                // Wiktionary response is keyed by language code, e.g. "en"
+                guard let englishEntries = wiktResponse.en, !englishEntries.isEmpty else {
+                    completion(.failure(NSError(domain: "DictionaryService", code: 404, userInfo: [NSLocalizedDescriptionKey: "No English definition found on Wiktionary"])))
+                    return
+                }
+                
+                var meanings: [Meaning] = []
+                for entry in englishEntries {
+                    let defs = entry.definitions.map { wiktDef -> Definition in
+                        // Wiktionary definitions may contain HTML tags — strip them
+                        let cleanDef = wiktDef.definition.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+                        let example = wiktDef.examples?.first.map { ex in
+                            ex.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+                        }
+                        return Definition(
+                            definition: cleanDef,
+                            example: example,
+                            synonyms: nil,
+                            antonyms: nil
+                        )
+                    }
+                    
+                    if !defs.isEmpty {
+                        meanings.append(Meaning(
+                            partOfSpeech: entry.partOfSpeech,
+                            definitions: defs,
+                            synonyms: nil,
+                            antonyms: nil
+                        ))
+                    }
+                }
+                
+                guard !meanings.isEmpty else {
+                    completion(.failure(NSError(domain: "DictionaryService", code: 404, userInfo: [NSLocalizedDescriptionKey: "Wiktionary returned no usable definitions"])))
+                    return
+                }
+                
+                let result = DictionaryResult(
+                    word: word,
+                    phonetic: nil,
+                    phonetics: nil,
+                    meanings: meanings,
+                    sourceUrls: ["https://en.wiktionary.org/wiki/\(wiktWord)"]
+                )
+                
+                print("DictionaryService: ✅ Wiktionary returned \(meanings.count) meanings for '\(word)'")
+                completion(.success(result))
+                
+            } catch {
+                print("DictionaryService: Wiktionary parse error: \(error)")
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Primary Dictionary API
     
     private func fetchFromAPI(word: String, completion: @escaping (Result<DictionaryResult, Error>) -> Void) {
         guard let encodedWord = word.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),

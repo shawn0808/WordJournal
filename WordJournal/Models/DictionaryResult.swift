@@ -47,3 +47,40 @@ struct LocalDictionaryEntry: Codable {
     let definition: String
     let example: String?
 }
+
+// MARK: - Wiktionary API response models
+
+struct WiktionaryResponse: Codable {
+    let en: [WiktionaryEntry]?
+    
+    // Wiktionary returns a dictionary keyed by language code.
+    // We use custom decoding to extract the "en" key dynamically.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
+        en = try container.decodeIfPresent([WiktionaryEntry].self, forKey: DynamicCodingKeys(stringValue: "en")!)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicCodingKeys.self)
+        try container.encodeIfPresent(en, forKey: DynamicCodingKeys(stringValue: "en")!)
+    }
+    
+    private struct DynamicCodingKeys: CodingKey {
+        var stringValue: String
+        var intValue: Int?
+        
+        init?(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { self.intValue = intValue; self.stringValue = String(intValue) }
+    }
+}
+
+struct WiktionaryEntry: Codable {
+    let partOfSpeech: String
+    let language: String?
+    let definitions: [WiktionaryDefinition]
+}
+
+struct WiktionaryDefinition: Codable {
+    let definition: String
+    let examples: [String]?
+}

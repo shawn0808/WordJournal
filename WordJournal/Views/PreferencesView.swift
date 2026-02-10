@@ -60,15 +60,30 @@ struct PreferencesView: View {
                     Text("Activation Method")
                         .font(.headline)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label("Shift+Click to lookup", systemImage: "cursorarrow.click")
-                            .foregroundColor(.blue)
-                        Text("Select text, then Shift+Click to see the definition")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("Simple: select a word, hold Shift, click!")
-                            .font(.caption2)
-                            .foregroundColor(.green)
+                    // Trigger method picker
+                    ForEach(TriggerMethod.allCases, id: \.rawValue) { method in
+                        let isSelected = triggerManager.triggerMethod == method
+                        
+                        HStack(spacing: 10) {
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(isSelected ? .blue : .secondary)
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(method.displayName)
+                                    .fontWeight(isSelected ? .semibold : .regular)
+                                Text(method.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            triggerManager.triggerMethod = method
+                        }
+                        .padding(.vertical, 4)
                     }
                     
                     // Show monitor status

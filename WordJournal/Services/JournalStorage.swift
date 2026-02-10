@@ -68,9 +68,12 @@ class JournalStorage: ObservableObject {
     func addEntry(_ entry: WordEntry) {
         print("JournalStorage: addEntry() called for word: '\(entry.word)'")
         
-        // Skip duplicate words (case-insensitive)
-        if entries.contains(where: { $0.word.lowercased() == entry.word.lowercased() }) {
-            print("JournalStorage: ⚠️ '\(entry.word)' already exists in journal, skipping duplicate")
+        // Skip exact duplicates (same word AND same definition)
+        if entries.contains(where: {
+            $0.word.lowercased() == entry.word.lowercased() &&
+            $0.definition.lowercased() == entry.definition.lowercased()
+        }) {
+            print("JournalStorage: ⚠️ '\(entry.word)' with same definition already exists, skipping duplicate")
             return
         }
         
@@ -195,15 +198,15 @@ class JournalStorage: ObservableObject {
         }
         sqlite3_finalize(queryStatement)
         
-        // Remove duplicates (keep the earliest entry for each word)
-        var seenWords: [String: Int] = [:]  // lowercased word -> index
+        // Remove exact duplicates (same word AND same definition, keep the earliest)
+        var seenKeys: Set<String> = []
         var duplicateIDs: [UUID] = []
         var deduped: [WordEntry] = []
         
         for entry in loadedEntries {
-            let key = entry.word.lowercased()
-            if seenWords[key] == nil {
-                seenWords[key] = deduped.count
+            let key = "\(entry.word.lowercased()):::\(entry.definition.lowercased())"
+            if !seenKeys.contains(key) {
+                seenKeys.insert(key)
                 deduped.append(entry)
             } else {
                 duplicateIDs.append(entry.id)

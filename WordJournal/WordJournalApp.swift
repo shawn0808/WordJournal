@@ -160,7 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 alert.messageText = "No Text Selected"
-                alert.informativeText = "Please select a word first, then Shift+Click to look it up"
+                alert.informativeText = "Please select a word or phrase first, then Shift+Click to look it up"
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -168,29 +168,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         
-        // Clean up the text - take first word if multiple words selected
-        let words = selectedText.components(separatedBy: .whitespacesAndNewlines)
-        let word = words.first?.trimmingCharacters(in: .punctuationCharacters) ?? selectedText
+        // Clean up the text - trim whitespace and limit length
+        // Support both single words and phrases
+        let word = selectedText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .punctuationCharacters)
+            .prefix(200)  // Reasonable limit for phrases
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !word.isEmpty else { 
             print("AppDelegate: Word is empty after cleanup")
             return 
         }
         
-        print("AppDelegate: Looking up word: '\(word)'")
+        let isPhrase = word.contains(" ")
+        print("AppDelegate: Looking up \(isPhrase ? "phrase" : "word"): '\(word)'")
         
-        DictionaryService.shared.lookup(word) { result in
+        DictionaryService.shared.lookup(String(word)) { result in
             switch result {
             case .success(let definition):
                 print("AppDelegate: Dictionary lookup successful")
                 DispatchQueue.main.async {
-                    self.showDefinitionPopup(word: word, definition: definition)
+                    self.showDefinitionPopup(word: String(word), definition: definition)
                 }
             case .failure(let error):
                 print("AppDelegate: Dictionary lookup failed: \(error)")
                 DispatchQueue.main.async {
                     let alert = NSAlert()
-                    alert.messageText = "Dictionary Lookup Failed"
+                    alert.messageText = "Lookup Failed"
                     alert.informativeText = "Could not find definition for '\(word)'. Error: \(error.localizedDescription)"
                     alert.alertStyle = .warning
                     alert.addButton(withTitle: "OK")
@@ -249,10 +254,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let popupView = DefinitionPopupView(
             word: word,
             result: definition,
-            onAddToJournal: {
-                print("AppDelegate: 'Add to Journal' button clicked!")
-                self.addToJournal(word: word, definition: definition)
-                panel.close()
+            onAddToJournal: { defText, posText, exText in
+                print("AppDelegate: 'Add to Journal' clicked for definition: '\(defText.prefix(50))...'")
+                self.addToJournal(word: word, definition: defText, partOfSpeech: posText, example: exText)
             },
             onDismiss: {
                 panel.close()
@@ -298,24 +302,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func addToJournal(word: String, definition: DictionaryResult) {
+    private func addToJournal(word: String, definition: String, partOfSpeech: String, example: String) {
         print("AppDelegate: addToJournal() called for word: '\(word)'")
-        
-        let firstMeaning = definition.meanings.first
-        let firstDefinition = firstMeaning?.definitions.first
-        
-        let defText = firstDefinition?.definition ?? "No definition available"
-        let posText = firstMeaning?.partOfSpeech ?? "unknown"
-        let exText = firstDefinition?.example ?? ""
-        
-        print("AppDelegate: Definition: '\(defText)'")
-        print("AppDelegate: Part of speech: '\(posText)'")
+        print("AppDelegate: Definition: '\(definition)'")
+        print("AppDelegate: Part of speech: '\(partOfSpeech)'")
         
         let entry = WordEntry(
             word: word,
-            definition: defText,
-            partOfSpeech: posText,
-            example: exText,
+            definition: definition,
+            partOfSpeech: partOfSpeech,
+            example: example,
             dateLookedUp: Date(),
             notes: ""
         )
