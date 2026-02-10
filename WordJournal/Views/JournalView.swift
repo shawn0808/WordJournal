@@ -73,6 +73,18 @@ struct JournalView: View {
                 }
                 .width(min: 200, ideal: 300)
                 
+                TableColumn("Example") { entry in
+                    EditableText(text: Binding(
+                        get: { entry.example },
+                        set: { newValue in
+                            var updated = entry
+                            updated.example = newValue
+                            journalStorage.updateEntry(updated)
+                        }
+                    ))
+                }
+                .width(min: 150, ideal: 250)
+                
                 TableColumn("Part of Speech") { entry in
                     EditableText(text: Binding(
                         get: { entry.partOfSpeech },
@@ -85,7 +97,7 @@ struct JournalView: View {
                 }
                 .width(min: 100, ideal: 120)
                 
-                TableColumn("Date") { entry in
+                TableColumn("Date Added") { entry in
                     Text(entry.dateLookedUp, style: .date)
                         .foregroundColor(.secondary)
                 }

@@ -13,9 +13,9 @@ struct MenuBarView: View {
     @ObservedObject var journalStorage: JournalStorage
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Stats
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Word Journal")
                     .font(.headline)
                 
@@ -23,42 +23,84 @@ struct MenuBarView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             
             Divider()
             
             // Menu items
-            Button(action: showJournal) {
-                Label("Open Journal", systemImage: "book")
+            VStack(alignment: .leading, spacing: 2) {
+                menuButton(title: "Open Journal", icon: "book.fill", shortcut: "⌘J") {
+                    showJournal()
+                }
+                
+                menuButton(title: "Preferences", icon: "gearshape", shortcut: "⌘,") {
+                    showPreferences()
+                }
             }
-            .buttonStyle(.plain)
-            .keyboardShortcut("j", modifiers: .command)
-            
-            Button(action: showPreferences) {
-                Label("Preferences", systemImage: "gear")
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(",", modifiers: .command)
+            .padding(.vertical, 4)
             
             Divider()
             
-            // Test button for debugging
-            Button("Test Lookup") {
-                print("MenuBarView: Test button clicked - triggering lookup manually")
-                TriggerManager.shared.triggerManually()
-            }
-            .buttonStyle(.plain)
-            
-            Divider()
-            
-            Button("Quit") {
+            // Quit
+            menuButton(title: "Quit Word Journal", icon: "power", shortcut: "⌘Q") {
                 NSApplication.shared.terminate(nil)
             }
-            .buttonStyle(.plain)
-            .keyboardShortcut("q", modifiers: .command)
+            .padding(.vertical, 4)
         }
-        .frame(width: 200)
-        .padding(.vertical, 8)
+        .frame(width: 220)
+    }
+    
+    @ViewBuilder
+    private func menuButton(title: String, icon: String, shortcut: String?, action: @escaping () -> Void) -> some View {
+        HoverButton(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .frame(width: 16, alignment: .center)
+                
+                Text(title)
+                
+                Spacer()
+                
+                if let shortcut = shortcut {
+                    Text(shortcut)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+        }
+    }
+}
+
+// MARK: - Hover Button
+
+struct HoverButton<Content: View>: View {
+    let action: () -> Void
+    let content: () -> Content
+    
+    @State private var isHovered = false
+    
+    init(action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
+        self.action = action
+        self.content = content
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            content()
+                .foregroundColor(isHovered ? .white : .primary)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isHovered ? Color.accentColor : Color.clear)
+                        .padding(.horizontal, 4)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
     }
 }

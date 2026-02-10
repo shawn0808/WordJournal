@@ -351,7 +351,7 @@ struct WordJournalApp: App {
     }
     
     var body: some Scene {
-        MenuBarExtra("Word Journal", systemImage: "book.closed") {
+        MenuBarExtra("Word Journal", systemImage: "character.book.closed.fill") {
             MenuBarView(
                 showJournal: { appDelegate.showJournal() },
                 showPreferences: { appDelegate.showPreferences() },
