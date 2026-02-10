@@ -43,13 +43,16 @@ class DictionaryService: ObservableObject {
         let normalizedWord = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
         // Check cache first
+        var cachedResult: DictionaryResult?
         cacheQueue.sync {
-            if let cached = cache[normalizedWord] {
-                DispatchQueue.main.async {
-                    completion(.success(cached))
-                }
-                return
+            cachedResult = cache[normalizedWord]
+        }
+        
+        if let cached = cachedResult {
+            DispatchQueue.main.async {
+                completion(.success(cached))
             }
+            return
         }
         
         // Check local dictionary

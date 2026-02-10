@@ -287,12 +287,19 @@ struct WordJournalApp: App {
     @StateObject private var hotKeyManager = HotKeyManager.shared
     @StateObject private var dictionaryService = DictionaryService.shared
     
+    private static var hasSetupServices = false
+    
     init() {
         print("WordJournalApp: App initializing...")
         // Initialization happens here, but setup will occur in onAppear
     }
     
     func setupServices() {
+        guard !WordJournalApp.hasSetupServices else {
+            print("WordJournalApp: setupServices() already done, skipping")
+            return
+        }
+        WordJournalApp.hasSetupServices = true
         print("WordJournalApp: setupServices() called")
         
         // Check accessibility permissions first
