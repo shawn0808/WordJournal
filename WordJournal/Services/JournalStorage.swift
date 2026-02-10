@@ -64,6 +64,12 @@ class JournalStorage: ObservableObject {
     func addEntry(_ entry: WordEntry) {
         print("JournalStorage: addEntry() called for word: '\(entry.word)'")
         
+        // Skip duplicate words (case-insensitive)
+        if entries.contains(where: { $0.word.lowercased() == entry.word.lowercased() }) {
+            print("JournalStorage: ⚠️ '\(entry.word)' already exists in journal, skipping duplicate")
+            return
+        }
+        
         let insertSQL = """
             INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?);
@@ -185,8 +191,39 @@ class JournalStorage: ObservableObject {
         }
         sqlite3_finalize(queryStatement)
         
+        // Remove duplicates (keep the earliest entry for each word)
+        var seenWords: [String: Int] = [:]  // lowercased word -> index
+        var duplicateIDs: [UUID] = []
+        var deduped: [WordEntry] = []
+        
+        for entry in loadedEntries {
+            let key = entry.word.lowercased()
+            if seenWords[key] == nil {
+                seenWords[key] = deduped.count
+                deduped.append(entry)
+            } else {
+                duplicateIDs.append(entry.id)
+            }
+        }
+        
+        // Delete duplicates from database
+        for id in duplicateIDs {
+            let deleteSQL = "DELETE FROM word_entries WHERE id = ?;"
+            var stmt: OpaquePointer?
+            if sqlite3_prepare_v2(db, deleteSQL, -1, &stmt, nil) == SQLITE_OK {
+                let idStr = (id.uuidString as NSString).utf8String
+                sqlite3_bind_text(stmt, 1, idStr, -1, nil)
+                sqlite3_step(stmt)
+            }
+            sqlite3_finalize(stmt)
+        }
+        
+        if !duplicateIDs.isEmpty {
+            print("JournalStorage: Removed \(duplicateIDs.count) duplicate entries")
+        }
+        
         DispatchQueue.main.async {
-            self.entries = loadedEntries
+            self.entries = deduped
         }
     }
     

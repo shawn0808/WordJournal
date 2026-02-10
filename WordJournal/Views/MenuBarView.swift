@@ -11,6 +11,7 @@ struct MenuBarView: View {
     let showJournal: () -> Void
     let showPreferences: () -> Void
     @ObservedObject var journalStorage: JournalStorage
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -31,10 +32,12 @@ struct MenuBarView: View {
             // Menu items
             VStack(alignment: .leading, spacing: 2) {
                 menuButton(title: "Open Journal", icon: "book.fill", shortcut: "⌘J") {
+                    dismiss()
                     showJournal()
                 }
                 
                 menuButton(title: "Preferences", icon: "gearshape", shortcut: "⌘,") {
+                    dismiss()
                     showPreferences()
                 }
             }

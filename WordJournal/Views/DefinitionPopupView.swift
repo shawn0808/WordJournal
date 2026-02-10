@@ -172,6 +172,11 @@ class PronunciationPlayer: NSObject, ObservableObject {
     }
     
     /// Download audio from URL and play with afplay. Returns true if successful.
+    /// Synchronous download and play — can be called from background thread
+    func downloadAndPlaySync(url: URL) -> Bool {
+        return downloadAndPlay(url: url)
+    }
+    
     private func downloadAndPlay(url: URL) -> Bool {
         let semaphore = DispatchSemaphore(value: 0)
         var audioData: Data?

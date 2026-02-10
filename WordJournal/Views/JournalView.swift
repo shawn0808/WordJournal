@@ -12,6 +12,9 @@ struct JournalView: View {
     @State private var searchText = ""
     @State private var editingEntry: WordEntry?
     @State private var showExportAlert = false
+    @StateObject private var audioPlayer = PronunciationPlayer()
+    @State private var isPlayingAll = false
+    @State private var currentPlayIndex = 0
     
     var filteredEntries: [WordEntry] {
         if searchText.isEmpty {
@@ -28,27 +31,58 @@ struct JournalView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Toolbar
-            HStack {
-                TextField("Search...", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 300)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    TextField("Search...", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 85)
+                    
+                    Text("\(filteredEntries.count) entries")
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                }
                 
-                Spacer()
-                
-                Text("\(filteredEntries.count) entries")
-                    .foregroundColor(.secondary)
-                
-                Button("Export CSV") {
-                    exportToCSV()
+                HStack(spacing: 8) {
+                    Button(action: {
+                        if isPlayingAll {
+                            stopPlayAll()
+                        } else {
+                            playAllWords()
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: isPlayingAll ? "stop.fill" : "play.fill")
+                            Text(isPlayingAll ? "Stop (\(currentPlayIndex + 1)/\(filteredEntries.count))" : "Play All")
+                        }
+                    }
+                    .disabled(filteredEntries.isEmpty)
+                    
+                    Button("Export CSV") {
+                        exportToCSV()
+                    }
+                    
+                    Spacer()
                 }
             }
             .padding()
             .background(Color(NSColor.controlBackgroundColor))
             
-            Divider()
-            
             // Table
             Table(filteredEntries, selection: .constant(nil)) {
+                TableColumn("") { entry in
+                    Button(action: {
+                        audioPlayer.pronounce(word: entry.word, audioURL: nil)
+                    }) {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Pronounce \(entry.word)")
+                }
+                .width(30)
+                
                 TableColumn("Word") { entry in
                     EditableText(text: Binding(
                         get: { entry.word },
@@ -132,6 +166,47 @@ struct JournalView: View {
         } message: {
             Text("CSV file has been saved to your Desktop.")
         }
+    }
+    
+    private func playAllWords() {
+        let words = filteredEntries.map { $0.word }
+        guard !words.isEmpty else { return }
+        
+        isPlayingAll = true
+        currentPlayIndex = 0
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            for (index, word) in words.enumerated() {
+                // Check if stopped
+                if !isPlayingAll { break }
+                
+                DispatchQueue.main.async {
+                    currentPlayIndex = index
+                }
+                
+                print("PronunciationPlayer: Playing all - [\(index + 1)/\(words.count)] '\(word)'")
+                
+                // Use synchronous download and play
+                let encoded = word.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? word
+                if let url = URL(string: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=\(encoded)") {
+                    _ = audioPlayer.downloadAndPlaySync(url: url)
+                }
+                
+                // Small pause between words
+                if isPlayingAll && index < words.count - 1 {
+                    Thread.sleep(forTimeInterval: 0.5)
+                }
+            }
+            
+            DispatchQueue.main.async {
+                isPlayingAll = false
+            }
+        }
+    }
+    
+    private func stopPlayAll() {
+        isPlayingAll = false
+        audioPlayer.stop()
     }
     
     private func exportToCSV() {
