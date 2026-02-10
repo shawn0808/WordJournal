@@ -27,7 +27,11 @@ class JournalStorage: ObservableObject {
         
         dbPath = appFolderURL.appendingPathComponent("journal.db").path
         initializeDatabase()
-        loadEntries()
+        
+        // Load entries on a background thread so the UI appears immediately
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.loadEntries()
+        }
     }
     
     private func initializeDatabase() {

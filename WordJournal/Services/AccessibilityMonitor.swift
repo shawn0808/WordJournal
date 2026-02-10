@@ -19,6 +19,7 @@ class AccessibilityMonitor: ObservableObject {
     // Cache with app tracking (Option 3)
     private var cachedSelectedText: String = ""
     private var cachedFromAppPID: pid_t = 0
+    private var nonAXApps: Set<pid_t> = []  // PIDs of apps where AX API failed (e.g., PDF viewers)
     
     private init() {
         checkAccessibilityPermission(showPrompt: false)
@@ -54,7 +55,7 @@ class AccessibilityMonitor: ObservableObject {
         
         stopMonitoring()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.pollSelectedText()
         }
         
@@ -113,7 +114,9 @@ class AccessibilityMonitor: ObservableObject {
         print("AccessibilityMonitor: Cache: '\(cachedSelectedText)' from PID: \(cachedFromAppPID)")
         
         // Option 3: Check if cached text is from the SAME app
-        if !cachedSelectedText.isEmpty && cachedFromAppPID == currentPID {
+        // BUT skip cache for apps where AX API doesn't work (e.g., PDF viewers)
+        // because the polling can't update the cache for those apps
+        if !cachedSelectedText.isEmpty && cachedFromAppPID == currentPID && !nonAXApps.contains(currentPID) {
             print("AccessibilityMonitor: ✅ Using cached text (same app): '\(cachedSelectedText)'")
             return cachedSelectedText
         }
@@ -129,6 +132,9 @@ class AccessibilityMonitor: ObservableObject {
                 return trimmed
             }
         }
+        
+        // Mark this app as non-AX so we don't use stale cache for it next time
+        nonAXApps.insert(currentPID)
         
         // Option 2 fallback: Accessibility API failed (e.g., Preview, Chrome, etc.)
         // Use pasteboard method (simulate Cmd+C)

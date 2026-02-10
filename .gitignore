@@ -38,3 +38,4 @@ Carthage/Build
 
 # User-specific files
 WordJournalTests/
+.cursor/debug.log

@@ -58,8 +58,8 @@ class TriggerManager: ObservableObject {
             if hasShift && !hasCommand && !hasOption && !hasControl {
                 print("TriggerManager: ✅✅✅ SHIFT+CLICK DETECTED!")
                 
-                // Small delay to let things settle
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                // Trigger immediately (next run loop cycle)
+                DispatchQueue.main.async {
                     self.activationHandler?()
                 }
             }
