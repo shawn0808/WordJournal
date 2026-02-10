@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var journalWindow: NSWindow?
     var preferencesWindow: NSWindow?
     var popupWindow: NSWindow?
+    var popupClickMonitor: Any?
     
     override init() {
         super.init()
@@ -221,10 +222,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.makeKeyAndOrderFront(nil)
         popupWindow = panel
         
-        // Auto-dismiss after 10 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-            if panel.isVisible {
+        // Remove any previous click-outside monitor
+        if let oldMonitor = popupClickMonitor {
+            NSEvent.removeMonitor(oldMonitor)
+            popupClickMonitor = nil
+        }
+        
+        // Dismiss when user clicks outside the popup
+        popupClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self, weak panel] event in
+            guard let panel = panel, panel.isVisible else {
+                // Panel is gone, clean up monitor
+                if let monitor = self?.popupClickMonitor {
+                    NSEvent.removeMonitor(monitor)
+                    self?.popupClickMonitor = nil
+                }
+                return
+            }
+            
+            let screenLocation = NSEvent.mouseLocation
+            let panelFrame = panel.frame
+            
+            if !panelFrame.contains(screenLocation) {
                 panel.close()
+                if let monitor = self?.popupClickMonitor {
+                    NSEvent.removeMonitor(monitor)
+                    self?.popupClickMonitor = nil
+                }
             }
         }
     }

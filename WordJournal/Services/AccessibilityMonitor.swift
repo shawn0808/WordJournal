@@ -15,10 +15,12 @@ class AccessibilityMonitor: ObservableObject {
     @Published var hasAccessibilityPermission: Bool = false
     
     private var timer: Timer?
+    
+    // Cache with app tracking (Option 3)
     private var cachedSelectedText: String = ""
+    private var cachedFromAppPID: pid_t = 0
     
     private init() {
-        // Silent check on init - don't prompt
         checkAccessibilityPermission(showPrompt: false)
     }
     
@@ -52,7 +54,6 @@ class AccessibilityMonitor: ObservableObject {
         
         stopMonitoring()
         
-        // Poll every 0.3 seconds for selected text
         timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             self?.pollSelectedText()
         }
@@ -65,14 +66,91 @@ class AccessibilityMonitor: ObservableObject {
         timer = nil
     }
     
+    // MARK: - Polling (background cache)
+    
     private func pollSelectedText() {
         guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
             return
         }
         
-        let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
+        let pid = frontmostApp.processIdentifier
         
-        // Try focused element first
+        // Try Accessibility API to get selected text
+        if let text = readSelectedTextViaAccessibility(pid: pid) {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty && (trimmed != cachedSelectedText || pid != cachedFromAppPID) {
+                cachedSelectedText = trimmed
+                cachedFromAppPID = pid
+                DispatchQueue.main.async { [weak self] in
+                    self?.selectedText = trimmed
+                }
+                print("AccessibilityMonitor: 📝 Cached: '\(trimmed)' from \(frontmostApp.localizedName ?? "Unknown") (PID: \(pid))")
+            }
+        }
+        // If Accessibility API fails, we don't update the cache.
+        // The pasteboard fallback will handle it when the user triggers a lookup.
+    }
+    
+    // MARK: - Get text when user triggers lookup
+    
+    func getCurrentSelectedText() -> String {
+        checkAccessibilityPermission(showPrompt: false)
+        
+        guard hasAccessibilityPermission else {
+            print("AccessibilityMonitor: No permissions")
+            return ""
+        }
+        
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+            print("AccessibilityMonitor: No frontmost app")
+            return ""
+        }
+        
+        let currentPID = frontmostApp.processIdentifier
+        let appName = frontmostApp.localizedName ?? "Unknown"
+        
+        print("AccessibilityMonitor: getCurrentSelectedText() - App: \(appName) (PID: \(currentPID))")
+        print("AccessibilityMonitor: Cache: '\(cachedSelectedText)' from PID: \(cachedFromAppPID)")
+        
+        // Option 3: Check if cached text is from the SAME app
+        if !cachedSelectedText.isEmpty && cachedFromAppPID == currentPID {
+            print("AccessibilityMonitor: ✅ Using cached text (same app): '\(cachedSelectedText)'")
+            return cachedSelectedText
+        }
+        
+        // Cache is stale (different app) or empty.
+        // Try live Accessibility API read first.
+        if let liveText = readSelectedTextViaAccessibility(pid: currentPID) {
+            let trimmed = liveText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                print("AccessibilityMonitor: ✅ Got live text from Accessibility API: '\(trimmed)'")
+                cachedSelectedText = trimmed
+                cachedFromAppPID = currentPID
+                return trimmed
+            }
+        }
+        
+        // Option 2 fallback: Accessibility API failed (e.g., Preview, Chrome, etc.)
+        // Use pasteboard method (simulate Cmd+C)
+        print("AccessibilityMonitor: Accessibility API failed for \(appName), trying pasteboard method...")
+        let pasteboardText = getTextFromPasteboard()
+        if !pasteboardText.isEmpty {
+            print("AccessibilityMonitor: ✅ Got text from pasteboard: '\(pasteboardText)'")
+            cachedSelectedText = pasteboardText
+            cachedFromAppPID = currentPID
+            return pasteboardText
+        }
+        
+        print("AccessibilityMonitor: ❌ All methods failed for \(appName)")
+        return ""
+    }
+    
+    // MARK: - Accessibility API reader
+    
+    private func readSelectedTextViaAccessibility(pid: pid_t) -> String? {
+        let appRef = AXUIElementCreateApplication(pid)
+        
+        // Try focused element first (more reliable)
         var focusedElementRef: CFTypeRef?
         let focusResult = AXUIElementCopyAttributeValue(
             appRef,
@@ -88,22 +166,12 @@ class AccessibilityMonitor: ObservableObject {
                 &selectedTextRef
             )
             
-            if result == .success,
-               let text = selectedTextRef as? String,
-               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed != cachedSelectedText {
-                    cachedSelectedText = trimmed
-                    DispatchQueue.main.async { [weak self] in
-                        self?.selectedText = trimmed
-                    }
-                    print("AccessibilityMonitor: 📝 Cached selected text: '\(trimmed)'")
-                }
-                return
+            if result == .success, let text = selectedTextRef as? String, !text.isEmpty {
+                return text
             }
         }
         
-        // Try app-level as fallback
+        // Try app-level
         var selectedTextRef: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(
             appRef,
@@ -111,77 +179,57 @@ class AccessibilityMonitor: ObservableObject {
             &selectedTextRef
         )
         
-        if result == .success,
-           let text = selectedTextRef as? String,
-           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed != cachedSelectedText {
-                cachedSelectedText = trimmed
-                DispatchQueue.main.async { [weak self] in
-                    self?.selectedText = trimmed
-                }
-                print("AccessibilityMonitor: 📝 Cached selected text: '\(trimmed)'")
-            }
-        }
-    }
-    
-    /// Returns the most recently selected text (cached by the polling timer).
-    /// This is reliable because it captures the text BEFORE any click deselects it.
-    func getCurrentSelectedText() -> String {
-        checkAccessibilityPermission(showPrompt: false)
-        
-        guard hasAccessibilityPermission else {
-            print("AccessibilityMonitor: No permissions for getCurrentSelectedText")
-            return ""
-        }
-        
-        // Return the cached selected text from the polling timer.
-        // This is the key fix: we return what was selected BEFORE the click,
-        // not what's selected now (which may be nothing after a click).
-        let text = cachedSelectedText
-        print("AccessibilityMonitor: Returning cached text: '\(text)'")
-        
-        if !text.isEmpty {
+        if result == .success, let text = selectedTextRef as? String, !text.isEmpty {
             return text
         }
         
-        // If cache is empty, try reading live as a last resort
-        print("AccessibilityMonitor: Cache empty, trying live read...")
+        return nil
+    }
+    
+    // MARK: - Pasteboard fallback (Cmd+C simulation)
+    
+    private func getTextFromPasteboard() -> String {
+        print("AccessibilityMonitor: Simulating Cmd+C to copy selection...")
         
-        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
-            return ""
-        }
+        let pasteboard = NSPasteboard.general
+        let oldContents = pasteboard.string(forType: .string)
         
-        let appRef = AXUIElementCreateApplication(frontmostApp.processIdentifier)
+        // Clear pasteboard to detect new content
+        pasteboard.clearContents()
         
-        var focusedElementRef: CFTypeRef?
-        let focusResult = AXUIElementCopyAttributeValue(
-            appRef,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedElementRef
-        )
+        // Simulate Cmd+C
+        let source = CGEventSource(stateID: .hidSystemState)
         
-        if focusResult == .success, let focusedElement = focusedElementRef {
-            var selectedTextRef: CFTypeRef?
-            let result = AXUIElementCopyAttributeValue(
-                focusedElement as! AXUIElement,
-                kAXSelectedTextAttribute as CFString,
-                &selectedTextRef
-            )
-            
-            if result == .success, let liveText = selectedTextRef as? String, !liveText.isEmpty {
-                print("AccessibilityMonitor: ✅ Got live text: '\(liveText)'")
-                return liveText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cmdCDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true)
+        cmdCDown?.flags = .maskCommand
+        let cmdCUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false)
+        cmdCUp?.flags = .maskCommand
+        
+        cmdCDown?.post(tap: .cghidEventTap)
+        Thread.sleep(forTimeInterval: 0.05)
+        cmdCUp?.post(tap: .cghidEventTap)
+        
+        // Wait for copy to complete
+        Thread.sleep(forTimeInterval: 0.2)
+        
+        let newContents = pasteboard.string(forType: .string) ?? ""
+        
+        // Restore old pasteboard
+        if let oldContents = oldContents {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                pasteboard.clearContents()
+                pasteboard.setString(oldContents, forType: .string)
             }
         }
         
-        print("AccessibilityMonitor: ❌ No text available")
-        return ""
+        return newContents.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
-    /// Clear the cached text after a successful lookup
+    // MARK: - Cache management
+    
     func clearCache() {
         cachedSelectedText = ""
+        cachedFromAppPID = 0
         selectedText = ""
     }
 }
