@@ -8,6 +8,26 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Pointing Hand Cursor Modifier
+
+struct PointingHandCursor: ViewModifier {
+    func body(content: Content) -> some View {
+        content.onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.set()
+            } else {
+                NSCursor.arrow.set()
+            }
+        }
+    }
+}
+
+extension View {
+    func pointingHandCursor() -> some View {
+        modifier(PointingHandCursor())
+    }
+}
+
 struct DefinitionPopupView: View {
     let word: String
     let result: DictionaryResult
@@ -61,6 +81,7 @@ struct DefinitionPopupView: View {
                         .font(.body)
                 }
                 .buttonStyle(.plain)
+                .pointingHandCursor()
                 .help("Pronounce word")
                 
                 Spacer()
@@ -70,6 +91,7 @@ struct DefinitionPopupView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .pointingHandCursor()
             }
             
             Divider()
@@ -117,6 +139,7 @@ struct DefinitionPopupView: View {
                                             .font(.title3)
                                     }
                                     .buttonStyle(.plain)
+                                    .pointingHandCursor()
                                     .help(isAdded ? "Added to Journal" : "Add this definition to Journal")
                                     .disabled(isAdded)
                                 }

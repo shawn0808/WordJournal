@@ -15,17 +15,20 @@ struct JournalView: View {
     @StateObject private var audioPlayer = PronunciationPlayer()
     @State private var isPlayingAll = false
     @State private var currentPlayIndex = 0
+    @State private var sortOrder = [KeyPathComparator(\WordEntry.dateLookedUp, order: .reverse)]
     
     var filteredEntries: [WordEntry] {
+        let base: [WordEntry]
         if searchText.isEmpty {
-            return journalStorage.entries
+            base = journalStorage.entries
+        } else {
+            base = journalStorage.entries.filter { entry in
+                entry.word.localizedCaseInsensitiveContains(searchText) ||
+                entry.definition.localizedCaseInsensitiveContains(searchText) ||
+                entry.notes.localizedCaseInsensitiveContains(searchText)
+            }
         }
-        
-        return journalStorage.entries.filter { entry in
-            entry.word.localizedCaseInsensitiveContains(searchText) ||
-            entry.definition.localizedCaseInsensitiveContains(searchText) ||
-            entry.notes.localizedCaseInsensitiveContains(searchText)
-        }
+        return base.sorted(using: sortOrder)
     }
     
     var body: some View {
@@ -35,7 +38,7 @@ struct JournalView: View {
                 HStack(spacing: 8) {
                     TextField("Search...", text: $searchText)
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 85)
+                        .frame(width: 200)
                     
                     Text("\(filteredEntries.count) entries")
                         .foregroundColor(.secondary)
@@ -56,11 +59,13 @@ struct JournalView: View {
                             Text(isPlayingAll ? "Stop (\(currentPlayIndex + 1)/\(filteredEntries.count))" : "Play All")
                         }
                     }
+                    .pointingHandCursor()
                     .disabled(filteredEntries.isEmpty)
                     
                     Button("Export CSV") {
                         exportToCSV()
                     }
+                    .pointingHandCursor()
                     
                     Spacer()
                 }
@@ -69,7 +74,7 @@ struct JournalView: View {
             .background(Color(NSColor.controlBackgroundColor))
             
             // Table
-            Table(filteredEntries) {
+            Table(filteredEntries, sortOrder: $sortOrder) {
                 TableColumn("") { entry in
                     Button(action: {
                         audioPlayer.pronounce(word: entry.word, audioURL: nil)
@@ -79,11 +84,12 @@ struct JournalView: View {
                             .font(.caption)
                     }
                     .buttonStyle(.plain)
+                    .pointingHandCursor()
                     .help("Pronounce \(entry.word)")
                 }
                 .width(30)
                 
-                TableColumn("Word") { entry in
+                TableColumn("Word", value: \.word) { entry in
                     EditableText(text: Binding(
                         get: { entry.word },
                         set: { newValue in
@@ -95,7 +101,7 @@ struct JournalView: View {
                 }
                 .width(min: 100, ideal: 150)
                 
-                TableColumn("Definition") { entry in
+                TableColumn("Definition", value: \.definition) { entry in
                     EditableText(text: Binding(
                         get: { entry.definition },
                         set: { newValue in
@@ -107,7 +113,7 @@ struct JournalView: View {
                 }
                 .width(min: 200, ideal: 300)
                 
-                TableColumn("Example") { entry in
+                TableColumn("Example", value: \.example) { entry in
                     EditableText(text: Binding(
                         get: { entry.example },
                         set: { newValue in
@@ -119,7 +125,7 @@ struct JournalView: View {
                 }
                 .width(min: 150, ideal: 250)
                 
-                TableColumn("Part of Speech") { entry in
+                TableColumn("Part of Speech", value: \.partOfSpeech) { entry in
                     EditableText(text: Binding(
                         get: { entry.partOfSpeech },
                         set: { newValue in
@@ -131,13 +137,13 @@ struct JournalView: View {
                 }
                 .width(min: 100, ideal: 120)
                 
-                TableColumn("Date Added") { entry in
+                TableColumn("Date Added", value: \.dateLookedUp) { entry in
                     Text(entry.dateLookedUp, style: .date)
                         .foregroundColor(.secondary)
                 }
                 .width(min: 100, ideal: 120)
                 
-                TableColumn("Notes") { entry in
+                TableColumn("Notes", value: \.notes) { entry in
                     EditableText(text: Binding(
                         get: { entry.notes },
                         set: { newValue in
@@ -157,6 +163,7 @@ struct JournalView: View {
                             .foregroundColor(.red)
                     }
                     .buttonStyle(.plain)
+                    .pointingHandCursor()
                 }
                 .width(50)
             }

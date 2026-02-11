@@ -239,10 +239,18 @@ class AccessibilityMonitor: ObservableObject {
         Thread.sleep(forTimeInterval: 0.03)
         cmdCUp?.post(tap: .cghidEventTap)
         
-        // Wait for copy to complete
-        Thread.sleep(forTimeInterval: 0.12)
+        // Retry with increasing delays — fast for normal apps, reliable for PDFs
+        let retryDelays: [TimeInterval] = [0.05, 0.05, 0.1, 0.15]  // total max ~350ms
+        var newContents = ""
         
-        let newContents = pasteboard.string(forType: .string) ?? ""
+        for (i, delay) in retryDelays.enumerated() {
+            Thread.sleep(forTimeInterval: delay)
+            newContents = pasteboard.string(forType: .string) ?? ""
+            if !newContents.isEmpty {
+                print("AccessibilityMonitor: Pasteboard got text on attempt \(i + 1)")
+                break
+            }
+        }
         
         // Restore old pasteboard
         if let oldContents = oldContents {
