@@ -128,13 +128,21 @@ class JournalStorage: ObservableObject {
         """
         
         var updateStatement: OpaquePointer?
-        if sqlite3_prepare_v2(db, updateSQL, -1, &updateStatement, nil) == SQLITE_OK {
-            sqlite3_bind_text(updateStatement, 1, entry.word, -1, nil)
-            sqlite3_bind_text(updateStatement, 2, entry.definition, -1, nil)
-            sqlite3_bind_text(updateStatement, 3, entry.partOfSpeech, -1, nil)
-            sqlite3_bind_text(updateStatement, 4, entry.example, -1, nil)
-            sqlite3_bind_text(updateStatement, 5, entry.notes, -1, nil)
-            sqlite3_bind_text(updateStatement, 6, entry.id.uuidString, -1, nil)
+        let prepareResult = sqlite3_prepare_v2(db, updateSQL, -1, &updateStatement, nil)
+        
+        if prepareResult == SQLITE_OK {
+            let wordStr = (entry.word as NSString).utf8String
+            let defStr = (entry.definition as NSString).utf8String
+            let posStr = (entry.partOfSpeech as NSString).utf8String
+            let exStr = (entry.example as NSString).utf8String
+            let notesStr = (entry.notes as NSString).utf8String
+            let idStr = (entry.id.uuidString as NSString).utf8String
+            sqlite3_bind_text(updateStatement, 1, wordStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 2, defStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 3, posStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 4, exStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 5, notesStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 6, idStr, -1, nil)
             
             if sqlite3_step(updateStatement) == SQLITE_DONE {
                 DispatchQueue.main.async {
@@ -152,7 +160,8 @@ class JournalStorage: ObservableObject {
         
         var deleteStatement: OpaquePointer?
         if sqlite3_prepare_v2(db, deleteSQL, -1, &deleteStatement, nil) == SQLITE_OK {
-            sqlite3_bind_text(deleteStatement, 1, entry.id.uuidString, -1, nil)
+            let idStr = (entry.id.uuidString as NSString).utf8String
+            sqlite3_bind_text(deleteStatement, 1, idStr, -1, nil)
             
             if sqlite3_step(deleteStatement) == SQLITE_DONE {
                 DispatchQueue.main.async {

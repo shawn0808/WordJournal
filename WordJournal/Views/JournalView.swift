@@ -69,7 +69,7 @@ struct JournalView: View {
             .background(Color(NSColor.controlBackgroundColor))
             
             // Table
-            Table(filteredEntries, selection: .constant(nil)) {
+            Table(filteredEntries) {
                 TableColumn("") { entry in
                     Button(action: {
                         audioPlayer.pronounce(word: entry.word, audioURL: nil)
@@ -225,28 +225,18 @@ struct JournalView: View {
 
 struct EditableText: View {
     @Binding var text: String
-    @State private var isEditing = false
+    @State private var localText: String = ""
     @FocusState private var isFocused: Bool
-    
+
     var body: some View {
-        if isEditing {
-            TextField("", text: $text)
-                .textFieldStyle(.plain)
-                .focused($isFocused)
-                .onSubmit {
-                    isEditing = false
-                }
-                .onChange(of: isFocused) { focused in
-                    if !focused {
-                        isEditing = false
-                    }
-                }
-        } else {
-            Text(text.isEmpty ? "—" : text)
-                .onTapGesture(count: 2) {
-                    isEditing = true
-                    isFocused = true
-                }
-        }
+        TextField("—", text: $localText)
+            .textFieldStyle(.plain)
+            .focused($isFocused)
+            .onAppear { localText = text }
+            .onChange(of: text) { newValue in localText = newValue }
+            .onSubmit { text = localText }
+            .onChange(of: isFocused) { focused in
+                if !focused { text = localText }
+            }
     }
 }
