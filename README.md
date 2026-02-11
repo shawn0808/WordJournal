@@ -1,14 +1,22 @@
 # Word Journal
 
-A native macOS menu bar application that detects word selections across all applications, displays definitions in a floating popup, and maintains an editable spreadsheet-like journal of lookup history.
+A native macOS menu bar application that detects word and phrase selections across all applications, displays definitions in a floating popup, and maintains an editable journal of lookup history with pronunciation support.
 
 ## Features
 
-- **System-wide text selection monitoring** using Accessibility API
-- **Shift+Click activation** - Select a word, then Shift+Click to look it up
-- **Dictionary lookup** with local JSON dictionary and API fallback
+- **System-wide text selection monitoring** using Accessibility API with pasteboard fallback (works in PDF viewers and other apps where AX fails)
+- **Two activation methods** (switchable in Preferences):
+  - **Shift+Click** — Select text, hold Shift, and click
+  - **Double-tap Option (⌥)** — Select text, then quickly press Option twice
+- **Dictionary lookup** for words and phrases:
+  - Local JSON dictionary (optional)
+  - Free Dictionary API (https://api.dictionaryapi.dev)
+  - Wiktionary API fallback for phrases and idioms
+  - Persistent file-based cache
 - **Floating definition popup** that appears near your cursor
-- **Editable journal** with spreadsheet-like interface
+- **Pronunciation** — Click the speaker icon for audio (Dictionary API + Google TTS fallback, cached locally)
+- **Per-definition add** — Each meaning has its own + button; add only the definitions you want
+- **Editable journal** with search, pronunciation buttons, and "Play All"
 - **Export to CSV** functionality
 
 ## Requirements
@@ -59,49 +67,53 @@ Ensure `dictionary.json` is added to the app bundle:
 
 ## Usage
 
-1. **Look up a word:**
-   - Select any text in any application (double-click to select a word)
-   - Hold `Shift` and click anywhere
-   - A floating popup will appear with the definition
+1. **Look up a word or phrase:**
+   - Select any text in any application (double-click a word, or drag to select a phrase)
+   - **Shift+Click:** Hold Shift and click anywhere
+   - **Double-tap Option:** Quickly press Option (⌥) twice
+   - A floating popup will appear with the definition(s)
 
 2. **Add to journal:**
-   - Click "Add to Journal" in the definition popup
-   - The word will be saved to your journal
+   - Click the **+** button next to the definition you want to save
+   - You can add multiple meanings of the same word
 
 3. **View journal:**
    - Click the menu bar icon
    - Select "Open Journal"
-   - Edit entries by double-clicking cells
-   - Export to CSV using the "Export CSV" button
+   - Use the search bar to filter entries
+   - Click the speaker icon on any row to hear pronunciation
+   - Use "Play All" to pronounce all filtered words in sequence
+   - Export to CSV using the "Export to CSV" button
 
 4. **Preferences:**
    - Click the menu bar icon
    - Select "Preferences"
+   - Switch between **Shift+Click** and **Double-tap Option** activation
    - View accessibility permission status
-   - Configure keyboard shortcut (coming soon)
 
 ## Project Structure
 
 ```
 WordJournal/
 ├── WordJournal/
-│   ├── WordJournalApp.swift          # Main app entry point
+│   ├── WordJournalApp.swift          # Main app entry point, window management
 │   ├── Models/
 │   │   ├── WordEntry.swift           # Journal entry model
-│   │   └── DictionaryResult.swift    # Dictionary API response model
+│   │   └── DictionaryResult.swift    # Dictionary & Wiktionary API models
 │   ├── Services/
-│   │   ├── AccessibilityMonitor.swift    # Text selection monitoring
-│   │   ├── DictionaryService.swift       # Dictionary lookup service
-│   │   └── JournalStorage.swift          # SQLite storage service
+│   │   ├── AccessibilityMonitor.swift    # Text selection (AX + pasteboard)
+│   │   ├── DictionaryService.swift       # Lookup (API + Wiktionary + cache)
+│   │   └── JournalStorage.swift          # SQLite storage
 │   ├── Views/
-│   │   ├── DefinitionPopupView.swift     # Floating definition popup
-│   │   ├── JournalView.swift             # Spreadsheet-like journal UI
+│   │   ├── DefinitionPopupView.swift     # Definition popup + pronunciation
+│   │   ├── JournalView.swift             # Journal table with search, Play All
 │   │   ├── MenuBarView.swift             # Menu bar popover
-│   │   └── PreferencesView.swift         # Preferences window
+│   │   └── PreferencesView.swift        # Preferences (trigger method, permissions)
 │   ├── Utilities/
-│   │   └── HotKeyManager.swift           # Global keyboard shortcut handler
+│   │   ├── TriggerManager.swift          # Shift+Click & Double-tap Option
+│   │   └── HotKeyManager.swift           # Optional hotkey support
 │   └── Resources/
-│       └── dictionary.json              # Local dictionary data
+│       └── dictionary.json              # Local dictionary (optional)
 └── README.md
 ```
 
@@ -111,11 +123,18 @@ WordJournal/
 
 The app requires accessibility permissions to read selected text from other applications. Users will be prompted to grant these permissions on first launch.
 
+### Text Selection
+
+- **Accessibility API** — Primary method for reading selected text
+- **Pasteboard fallback** — Used when AX fails (e.g., PDF viewers); simulates Cmd+C to copy selection
+- **Cached selection** — Background polling updates a cache for faster lookups in AX-supported apps
+
 ### Dictionary Service
 
-- **Local dictionary**: JSON file with common words (expandable)
-- **API fallback**: Free Dictionary API (https://api.dictionaryapi.dev)
-- **Caching**: Recently looked-up words are cached in memory
+- **Local dictionary**: Optional JSON file with common words
+- **Primary API**: Free Dictionary API (https://api.dictionaryapi.dev)
+- **Fallback**: Wiktionary API for phrases and idioms
+- **Caching**: In-memory + persistent file cache (`~/Library/Caches/WordJournal/dictionary/`)
 
 ### Storage
 
@@ -123,9 +142,10 @@ The app requires accessibility permissions to read selected text from other appl
 - Database location: `~/Library/Application Support/WordJournal/journal.db`
 - All entries are stored locally
 
-### Hot Key Registration
+### Activation Triggers
 
-Uses Carbon API for global hotkey registration. The default shortcut is Cmd+Shift+D.
+- **Shift+Click**: Global mouse monitor detects left-click with Shift held
+- **Double-tap Option**: Global key monitor detects two Option key releases within ~400ms (ignores Option when used as modifier in shortcuts)
 
 ## Troubleshooting
 
@@ -134,22 +154,34 @@ Uses Carbon API for global hotkey registration. The default shortcut is Cmd+Shif
 1. Go to System Settings → Privacy & Security → Accessibility
 2. Ensure "WordJournal" is checked
 3. If not listed, add it manually by clicking the "+" button
+4. Restart the app after granting permission
 
-### Hot Key Not Responding
+### Trigger Not Responding
 
-1. Check if the shortcut conflicts with another app
-2. Try restarting the app
-3. Check Preferences to ensure hotkey is enabled
+**Shift+Click:**
+- Ensure only Shift is held (no Cmd, Option, or Control)
+- Try selecting text first, then Shift+Click
+
+**Double-tap Option:**
+- Press Option twice quickly (within ~400ms)
+- Do not press other keys between the two Option taps
+- Check Preferences to confirm "Double-tap Option" is selected
+
+### No Text Selected in PDF
+
+The app uses a pasteboard fallback for PDF viewers. If lookup shows no text:
+- Ensure the word/phrase is actually selected (highlighted)
+- Wait a moment after selecting before triggering (the fallback needs time to copy)
 
 ### Dictionary Lookup Failing
 
 1. Check internet connection (for API fallback)
-2. Verify `dictionary.json` is included in the app bundle
+2. Verify `dictionary.json` is included in the app bundle (optional)
 3. Check Console.app for error messages
 
 ## Future Enhancements
 
-- Customizable keyboard shortcuts
+- Chinese translation for words and phrases
 - Expanded local dictionary
 - Word frequency analysis
 - Flashcard mode
