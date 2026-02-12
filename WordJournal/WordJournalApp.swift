@@ -8,6 +8,11 @@
 import SwiftUI
 import AppKit
 
+// Subclass NSPanel to allow becoming key window when borderless
+class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate?
     
@@ -161,7 +166,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             case .success(let definition):
                 print("AppDelegate: Dictionary lookup successful")
                 DispatchQueue.main.async {
-                    self.showDefinitionPopup(word: String(cleaned), definition: definition)
+                    // Use the word from the result (may be lemmatized, e.g. "dogs" → "dog")
+                    self.showDefinitionPopup(word: definition.word, definition: definition)
                 }
             case .failure(let error):
                 print("AppDelegate: Dictionary lookup failed: \(error)")
@@ -222,7 +228,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             case .success(let definition):
                 print("AppDelegate: Dictionary lookup successful")
                 DispatchQueue.main.async {
-                    self.showDefinitionPopup(word: String(word), definition: definition)
+                    // Use the word from the result (may be lemmatized, e.g. "running" → "run")
+                    self.showDefinitionPopup(word: definition.word, definition: definition)
                 }
             case .failure(let error):
                 print("AppDelegate: Dictionary lookup failed: \(error)")
@@ -244,7 +251,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Close existing popup if any
         popupWindow?.close()
         
-        let panel = NSPanel(
+        let panel = KeyablePanel(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 400),
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
             backing: .buffered,

@@ -54,7 +54,7 @@ struct DefinitionPopupView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text(word.contains(" ") ? word : word.capitalized)
+                Text(word)
                     .font(.title2)
                     .fontWeight(.bold)
                 
