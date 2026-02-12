@@ -144,6 +144,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
     
+    func lookupWord(_ word: String) {
+        let cleaned = word
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .punctuationCharacters)
+            .prefix(200)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !cleaned.isEmpty else { return }
+        
+        let isPhrase = cleaned.contains(" ")
+        print("AppDelegate: Looking up \(isPhrase ? "phrase" : "word") from menu: '\(cleaned)'")
+        
+        DictionaryService.shared.lookup(String(cleaned)) { result in
+            switch result {
+            case .success(let definition):
+                print("AppDelegate: Dictionary lookup successful")
+                DispatchQueue.main.async {
+                    self.showDefinitionPopup(word: String(cleaned), definition: definition)
+                }
+            case .failure(let error):
+                print("AppDelegate: Dictionary lookup failed: \(error)")
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "Lookup Failed"
+                    alert.informativeText = "Could not find definition for '\(cleaned)'. Error: \(error.localizedDescription)"
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+            }
+        }
+    }
+    
     func handleLookup() {
         print("AppDelegate: handleLookup() called")
         
@@ -336,6 +369,7 @@ struct WordJournalApp: App {
             MenuBarView(
                 showJournal: { appDelegate.showJournal() },
                 showPreferences: { appDelegate.showPreferences() },
+                onLookupWord: { word in appDelegate.lookupWord(word) },
                 journalStorage: journalStorage
             )
             

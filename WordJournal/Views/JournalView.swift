@@ -16,6 +16,7 @@ struct JournalView: View {
     @State private var isPlayingAll = false
     @State private var currentPlayIndex = 0
     @State private var sortOrder = [KeyPathComparator(\WordEntry.dateLookedUp, order: .reverse)]
+    @State private var lookingUpEntryID: UUID? = nil
     
     var filteredEntries: [WordEntry] {
         let base: [WordEntry]
@@ -96,8 +97,20 @@ struct JournalView: View {
                             var updated = entry
                             updated.word = newValue
                             journalStorage.updateEntry(updated)
+                            
+                            // Auto-populate if this is a blank row and user just entered a word
+                            if entry.definition.isEmpty && !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                autoLookup(word: newValue.trimmingCharacters(in: .whitespacesAndNewlines), entryID: entry.id)
+                            }
                         }
                     ))
+                    .overlay(alignment: .trailing) {
+                        if lookingUpEntryID == entry.id {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                                .padding(.trailing, 4)
+                        }
+                    }
                 }
                 .width(min: 100, ideal: 150)
                 
@@ -167,6 +180,29 @@ struct JournalView: View {
                 }
                 .width(50)
             }
+            
+            // Add new entry button
+            HStack {
+                Button(action: {
+                    _ = journalStorage.addBlankEntry()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.blue)
+                        Text("Add Word")
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 4)
+            .background(Color(NSColor.controlBackgroundColor))
         }
         .alert("Export Complete", isPresented: $showExportAlert) {
             Button("OK") { }
@@ -207,6 +243,37 @@ struct JournalView: View {
             
             DispatchQueue.main.async {
                 isPlayingAll = false
+            }
+        }
+    }
+    
+    private func autoLookup(word: String, entryID: UUID) {
+        lookingUpEntryID = entryID
+        
+        DictionaryService.shared.lookup(word) { result in
+            DispatchQueue.main.async {
+                lookingUpEntryID = nil
+                
+                switch result {
+                case .success(let dictResult):
+                    guard let entry = journalStorage.entries.first(where: { $0.id == entryID }) else { return }
+                    
+                    // Only auto-fill if the definition is still empty (user hasn't manually typed one)
+                    guard entry.definition.isEmpty else { return }
+                    
+                    var updated = entry
+                    if let firstMeaning = dictResult.meanings.first,
+                       let firstDef = firstMeaning.definitions.first {
+                        updated.definition = firstDef.definition
+                        updated.partOfSpeech = firstMeaning.partOfSpeech
+                        updated.example = firstDef.example ?? ""
+                    }
+                    journalStorage.updateEntry(updated)
+                    print("JournalStorage: ✅ Auto-populated entry for '\(word)'")
+                    
+                case .failure(let error):
+                    print("JournalStorage: Auto-lookup failed for '\(word)': \(error.localizedDescription)")
+                }
             }
         }
     }

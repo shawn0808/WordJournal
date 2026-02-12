@@ -65,6 +65,43 @@ class JournalStorage: ObservableObject {
         sqlite3_finalize(createTableStatement)
     }
     
+    func addBlankEntry() -> WordEntry {
+        let entry = WordEntry(
+            word: "",
+            definition: "",
+            partOfSpeech: "",
+            example: "",
+            dateLookedUp: Date(),
+            notes: ""
+        )
+        
+        let insertSQL = """
+            INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """
+        
+        var insertStatement: OpaquePointer?
+        if sqlite3_prepare_v2(db, insertSQL, -1, &insertStatement, nil) == SQLITE_OK {
+            let idStr = (entry.id.uuidString as NSString).utf8String
+            let emptyStr = ("" as NSString).utf8String
+            
+            sqlite3_bind_text(insertStatement, 1, idStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 2, emptyStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 3, emptyStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 4, emptyStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 5, emptyStr, -1, nil)
+            sqlite3_bind_double(insertStatement, 6, entry.dateLookedUp.timeIntervalSince1970)
+            sqlite3_bind_text(insertStatement, 7, emptyStr, -1, nil)
+            
+            if sqlite3_step(insertStatement) == SQLITE_DONE {
+                print("JournalStorage: ✅ Blank entry created")
+                entries.insert(entry, at: 0)
+            }
+        }
+        sqlite3_finalize(insertStatement)
+        return entry
+    }
+    
     func addEntry(_ entry: WordEntry) {
         print("JournalStorage: addEntry() called for word: '\(entry.word)'")
         
