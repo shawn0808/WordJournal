@@ -148,36 +148,32 @@ class DictionaryService: ObservableObject {
     }
     
     private func fetchFromSystemDictionary(word: String) -> DictionaryResult? {
-        let cfWord = word as CFString
+        // Guard against empty or excessively long words that can crash CoreServices
+        let trimmed = word.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 200 else { return nil }
         
-        // Try with specific definition dictionary first, then fallback to default (nil)
-        let dictRef = definitionDictionary
+        // We MUST have a specific dictionary reference — passing nil to DCS APIs
+        // can cause EXC_BAD_ACCESS on some macOS versions
+        guard let dictRef = definitionDictionary else {
+            print("DictionaryService: No system dictionary available, skipping")
+            return nil
+        }
+        
+        let cfWord = trimmed as CFString
         let range = DCSGetTermRangeInString(dictRef, cfWord, 0)
         
         guard range.location != kCFNotFound else {
-            // If specific dictionary failed, try default
-            if dictRef != nil {
-                let defaultRange = DCSGetTermRangeInString(nil, cfWord, 0)
-                if defaultRange.location != kCFNotFound {
-                    if let def = DCSCopyTextDefinition(nil, cfWord, defaultRange) {
-                        let text = def.takeRetainedValue() as String
-                        return parseSystemDictionaryText(word: word, text: text)
-                    }
-                }
-            }
-            print("DictionaryService: System dictionary — no term found for '\(word)'")
+            print("DictionaryService: System dictionary — no term found for '\(trimmed)'")
             return nil
         }
         
         guard let cfDefinition = DCSCopyTextDefinition(dictRef, cfWord, range) else {
-            print("DictionaryService: System dictionary — no definition for '\(word)'")
+            print("DictionaryService: System dictionary — no definition for '\(trimmed)'")
             return nil
         }
         
         let fullText = cfDefinition.takeRetainedValue() as String
-        
-        // Parse the plain-text output into structured data
-        return parseSystemDictionaryText(word: word, text: fullText)
+        return parseSystemDictionaryText(word: trimmed, text: fullText)
     }
     
     private func parseSystemDictionaryText(word: String, text: String) -> DictionaryResult? {

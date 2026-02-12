@@ -17,6 +17,7 @@
 		8A3542EBAE7B41E7A463FCE3 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01D6E11C5784C71890C9A2E /* MenuBarView.swift */; };
 		9027BC847EB347E4A79E2116 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD5DA03865341129EA1B8C6 /* JournalView.swift */; };
 		AC42E754193F4EED94288ED2 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76381B53102142D7AA0B8E8D /* HotKeyManager.swift */; };
+		A7F3B2C1D4E58492A1B6C8D0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8E4C2D3E5F69583B2A7C9D1 /* Assets.xcassets */; };
 		BC1F851B5C75430DBC5D2350 /* dictionary.json in Resources */ = {isa = PBXBuildFile; fileRef = 2BD3632E032E41489F61B78C /* dictionary.json */; };
 		D531270D9D5C437DA803F9A0 /* WordJournalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */; };
 		EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1109AD88FEC84218AE0E961D /* DictionaryResult.swift */; };
@@ -24,6 +25,7 @@
 
 /* Begin PBXFileReference section */
 		0BD5DA03865341129EA1B8C6 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		B8E4C2D3E5F69583B2A7C9D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMonitor.swift; sourceTree = "<group>"; };
 		1109AD88FEC84218AE0E961D /* DictionaryResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryResult.swift; sourceTree = "<group>"; };
 		22D96B08AF9B4569AF503B82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -123,6 +125,7 @@
 		E987092C0119445883F797E8 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				B8E4C2D3E5F69583B2A7C9D1 /* Assets.xcassets */,
 				2BD3632E032E41489F61B78C /* dictionary.json */,
 			);
 			path = Resources;
@@ -186,6 +189,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A7F3B2C1D4E58492A1B6C8D0 /* Assets.xcassets in Resources */,
 				BC1F851B5C75430DBC5D2350 /* dictionary.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -341,7 +345,7 @@
 		C39475B065DD4AB8AED783C9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
@@ -397,7 +401,7 @@
 		E7A17DA433624C22A10CF4FD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
