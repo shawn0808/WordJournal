@@ -150,6 +150,20 @@ struct DefinitionPopupView: View {
                 }
             }
             .frame(maxHeight: 300)
+            
+            // Source attribution
+            if let source = result.sourceUrls?.first {
+                Divider()
+                HStack(spacing: 4) {
+                    Image(systemName: "book.closed.fill")
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Text(dictionarySourceLabel(source))
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Spacer()
+                }
+            }
         }
         .padding()
         .frame(width: 400)
@@ -159,6 +173,20 @@ struct DefinitionPopupView: View {
         .onHover { hovering in
             isHovered = hovering
         }
+    }
+    
+    private func dictionarySourceLabel(_ source: String) -> String {
+        if source == "macOS Dictionary" {
+            return "New Oxford American Dictionary"
+        } else if source.contains("wiktionary") {
+            return "Wiktionary"
+        } else if source.contains("dictionaryapi") {
+            return "Free Dictionary API"
+        } else if source.hasPrefix("http") {
+            // Extract domain name
+            return URL(string: source)?.host ?? source
+        }
+        return source
     }
 }
 

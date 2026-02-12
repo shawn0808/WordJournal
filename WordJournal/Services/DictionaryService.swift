@@ -53,6 +53,12 @@ class DictionaryService: ObservableObject {
         for file in files where file.pathExtension == "json" {
             if let data = try? Data(contentsOf: file),
                let result = try? JSONDecoder().decode(DictionaryResult.self, from: data) {
+                // Skip cached macOS Dictionary results — they're instant to re-fetch
+                // and we want them re-parsed with the latest parser logic
+                if result.sourceUrls?.contains("macOS Dictionary") == true {
+                    try? fm.removeItem(at: file)
+                    continue
+                }
                 let word = result.word.lowercased()
                 cache[word] = result
                 loaded += 1
@@ -215,6 +221,10 @@ class DictionaryService: ObservableObject {
             }
         }
         
+        // Strip bracketed grammar annotations (e.g. [mass noun], [with object]) early
+        // so they don't interfere with POS detection or definition text
+        bodyText = stripBracketedAnnotations(bodyText)
+        
         guard !bodyText.isEmpty else { return nil }
         
         // Split body into segments by POS labels
@@ -295,18 +305,30 @@ class DictionaryService: ObservableObject {
         )
     }
     
+    /// Strip bracketed grammar annotations like [mass noun], [with object], [no object], [count noun], etc.
+    private func stripBracketedAnnotations(_ text: String) -> String {
+        return text
+            .replacingOccurrences(of: "\\[.*?\\]\\s*", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     /// Split a definition content string into individual Definition objects.
     /// Handles numbered definitions ("1 ...", "2 ...") and sentence-based splitting.
     private func splitDefinitions(_ text: String) -> [Definition] {
         var definitions: [Definition] = []
         
+        // Strip bracketed grammar annotations (e.g. [mass noun], [with object]) before parsing
+        let cleanedText = stripBracketedAnnotations(text)
+        
+        guard !cleanedText.isEmpty else { return [] }
+        
         // Try splitting by numbered definitions (1 ..., 2 ...)
         let numberedPattern = "(?:^|\\s)\\d+\\s+"
         if let regex = try? NSRegularExpression(pattern: numberedPattern),
-           regex.numberOfMatches(in: text, range: NSRange(location: 0, length: (text as NSString).length)) >= 2 {
+           regex.numberOfMatches(in: cleanedText, range: NSRange(location: 0, length: (cleanedText as NSString).length)) >= 2 {
             // Has numbered defs — split using regex matches as delimiters
-            let nsText = text as NSString
-            let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+            let nsText = cleanedText as NSString
+            let matches = regex.matches(in: cleanedText, range: NSRange(location: 0, length: nsText.length))
             for (i, match) in matches.enumerated() {
                 let contentStart = match.range.location + match.range.length
                 let contentEnd = (i + 1 < matches.count) ? matches[i + 1].range.location : nsText.length
@@ -322,7 +344,7 @@ class DictionaryService: ObservableObject {
         // If no numbered defs found, try splitting by bullet points or treat as a single definition
         if definitions.isEmpty {
             // Split by bullet characters
-            let bulletParts = text.components(separatedBy: "•").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count >= 3 }
+            let bulletParts = cleanedText.components(separatedBy: "•").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count >= 3 }
             if bulletParts.count > 1 {
                 for part in bulletParts {
                     let (def, example) = extractExample(from: part)
@@ -330,10 +352,8 @@ class DictionaryService: ObservableObject {
                 }
             } else {
                 // Single definition — use the whole text
-                let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .replacingOccurrences(of: "^\\[.*?\\]\\s*", with: "", options: .regularExpression)
-                if cleaned.count >= 3 {
-                    let (def, example) = extractExample(from: cleaned)
+                if cleanedText.count >= 3 {
+                    let (def, example) = extractExample(from: cleanedText)
                     definitions.append(Definition(definition: def, example: example, synonyms: nil, antonyms: nil))
                 }
             }
@@ -342,15 +362,45 @@ class DictionaryService: ObservableObject {
         return definitions
     }
     
-    /// Try to split "definition text: 'example sentence'" into (definition, example)
+    /// Try to split "definition text: example sentence" into (definition, example).
+    /// NOAD uses ": " followed by an example sentence — sometimes quoted, sometimes unquoted.
     private func extractExample(from text: String) -> (String, String?) {
+        let quoteChars = CharacterSet(charactersIn: "\"'\u{201C}\u{201D}\u{2018}\u{2019}")
+        
+        // Find the last ": " that looks like a definition–example separator.
+        // NOAD format: "definition text: example sentence."
+        // We search for ": " where the part before it looks like a definition
+        // (ends with a word char, not a URL scheme like "http:").
         if let colonRange = text.range(of: ": ") {
+            let beforeColon = String(text[..<colonRange.lowerBound]).trimmingCharacters(in: .whitespaces)
             let afterColon = String(text[colonRange.upperBound...]).trimmingCharacters(in: .whitespaces)
-            let quoteChars = CharacterSet(charactersIn: "\"'\u{201C}\u{201D}\u{2018}\u{2019}")
+            
+            // Skip if it looks like a URL (e.g. "http: //") or too short
+            guard beforeColon.count >= 3, !afterColon.isEmpty else {
+                return (text, nil)
+            }
+            
+            // If quoted, strip quotes
             if afterColon.hasPrefix("\"") || afterColon.hasPrefix("'") || afterColon.hasPrefix("\u{201C}") {
-                let def = String(text[..<colonRange.lowerBound])
                 let example = afterColon.trimmingCharacters(in: quoteChars)
-                return (def, example)
+                return (beforeColon, example)
+            }
+            
+            // Unquoted example: the text after ": " starts with a lowercase letter
+            // (definitions/labels typically start uppercase, examples start lowercase)
+            if let firstChar = afterColon.first, firstChar.isLowercase {
+                // Clean up trailing period or sub-definitions marked with •
+                var example = afterColon
+                // If there's a bullet point (•), only take the first example
+                if let bulletRange = example.range(of: " •") {
+                    example = String(example[..<bulletRange.lowerBound])
+                }
+                // Trim trailing period
+                example = example.trimmingCharacters(in: .whitespaces)
+                if example.hasSuffix(".") {
+                    example = String(example.dropLast()).trimmingCharacters(in: .whitespaces)
+                }
+                return (beforeColon, example)
             }
         }
         return (text, nil)
@@ -378,9 +428,10 @@ class DictionaryService: ObservableObject {
     func lookup(_ word: String, completion: @escaping (Result<DictionaryResult, Error>) -> Void) {
         let normalizedWord = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
-        // Lemmatize to base form (e.g., "dogs" → "dog", "running" → "run")
-        let baseForm = lemmatize(normalizedWord)
-        let wasLemmatized = baseForm != normalizedWord && !baseForm.isEmpty
+        // Only lemmatize single words — phrases (e.g. "break a leg") must be looked up as-is
+        let isPhrase = normalizedWord.contains(" ")
+        let baseForm = isPhrase ? normalizedWord : lemmatize(normalizedWord)
+        let wasLemmatized = !isPhrase && baseForm != normalizedWord && !baseForm.isEmpty
         let lookupWord = wasLemmatized ? baseForm : normalizedWord
         
         if wasLemmatized {
