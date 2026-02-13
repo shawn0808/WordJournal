@@ -50,6 +50,9 @@ class TriggerManager: ObservableObject {
     private var keyMonitor: Any?
     private var activationHandler: (() -> Void)?
     
+    /// The screen location where the last trigger was activated (e.g. Shift+Click position)
+    var lastTriggerLocation: NSPoint?
+    
     // Double-tap Option detection state
     private var lastOptionPressTime: TimeInterval = 0
     private let doubleTapThreshold: TimeInterval = 0.4  // 400ms window for double-tap
@@ -105,6 +108,8 @@ class TriggerManager: ObservableObject {
             
             if hasShift && !hasCommand && !hasOption && !hasControl {
                 print("TriggerManager: ✅✅✅ SHIFT+CLICK DETECTED!")
+                // Capture the click location — this is exactly where the word is
+                self.lastTriggerLocation = NSEvent.mouseLocation
                 DispatchQueue.main.async {
                     self.activationHandler?()
                 }
@@ -170,6 +175,7 @@ class TriggerManager: ObservableObject {
                     // Double-tap detected!
                     print("TriggerManager: ✅✅✅ DOUBLE-TAP OPTION DETECTED! (interval: \(String(format: "%.0f", elapsed * 1000))ms)")
                     self.lastOptionPressTime = 0  // Reset to prevent triple-tap
+                    self.lastTriggerLocation = NSEvent.mouseLocation
                     DispatchQueue.main.async {
                         self.activationHandler?()
                     }

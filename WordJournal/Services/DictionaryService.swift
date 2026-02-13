@@ -185,12 +185,18 @@ class DictionaryService: ObservableObject {
         
         var phonetic: String? = nil
         var bodyText = text
+        var headword: String? = nil  // The actual dictionary headword (base form)
         
         // Extract phonetic and body from pipe-separated header
         // Format: "word | phonetic | rest..."  or "word | phonetic |\nrest..."
         if text.contains("|") {
             let parts = text.components(separatedBy: "|")
             if parts.count >= 3 {
+                // First part is the dictionary headword (e.g. "mammologist" even if we looked up "mammologists")
+                let headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !headwordPart.isEmpty {
+                    headword = headwordPart
+                }
                 let phoneticPart = parts[1].trimmingCharacters(in: .whitespaces)
                 if !phoneticPart.isEmpty {
                     phonetic = "/\(phoneticPart)/"
@@ -199,6 +205,10 @@ class DictionaryService: ObservableObject {
                 bodyText = parts.dropFirst(2).joined(separator: "|").trimmingCharacters(in: .whitespacesAndNewlines)
             } else if parts.count == 2 {
                 // "word | rest..."
+                let headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !headwordPart.isEmpty {
+                    headword = headwordPart
+                }
                 bodyText = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
@@ -290,10 +300,12 @@ class DictionaryService: ObservableObject {
         
         guard !meanings.isEmpty else { return nil }
         
-        print("DictionaryService: ✅ System dictionary returned \(meanings.count) meaning(s) for '\(word)'")
+        // Use the dictionary's headword (base form) if available, otherwise the input word
+        let displayWord = headword ?? word
+        print("DictionaryService: ✅ System dictionary returned \(meanings.count) meaning(s) for '\(displayWord)' (looked up '\(word)')")
         
         return DictionaryResult(
-            word: word,
+            word: displayWord,
             phonetic: phonetic,
             phonetics: phonetic.map { [Phonetic(text: $0, audio: nil)] },
             meanings: meanings,
@@ -421,14 +433,72 @@ class DictionaryService: ObservableObject {
         return lemma.lowercased()
     }
     
+    /// Generate suffix-stripped candidates for words NLTagger doesn't recognize.
+    /// Returns candidates in priority order (most specific suffix first).
+    private func suffixStrippedCandidates(_ word: String) -> [String] {
+        let lower = word.lowercased()
+        
+        // Don't strip words that end in common non-plural "s" suffixes
+        let noStripSuffixes = [
+            "ous", "ious", "eous",          // adventurous, curious, gorgeous
+            "us",                            // genus, campus, status
+            "ss",                            // class, grass, boss
+            "is",                            // basis, crisis, analysis
+            "ness",                          // kindness, darkness
+            "less",                          // careless, homeless
+            "wards",                         // towards, afterwards
+            "ics",                           // physics, mathematics
+            "itis",                          // arthritis, bronchitis
+        ]
+        
+        for suffix in noStripSuffixes {
+            if lower.hasSuffix(suffix) {
+                return []  // Not a plural — don't strip
+            }
+        }
+        
+        // Order matters: check longer/more specific suffixes first
+        let suffixRules: [(suffix: String, replacement: String, minStemLength: Int)] = [
+            ("ologies", "ology", 3),
+            ("nesses", "ness", 3),
+            ("ments", "ment", 3),
+            ("ists", "ist", 3),         // e.g. mammologists → mammologist
+            ("isms", "ism", 3),
+            ("ings", "ing", 3),
+            ("ies", "y", 3),            // e.g. berries → berry
+            ("ses", "se", 3),           // e.g. responses → response
+            ("ers", "er", 3),
+            ("ors", "or", 3),
+            ("es", "e", 3),             // e.g. plates → plate
+            ("es", "", 3),              // e.g. dishes → dish (if dropping "e" form fails)
+            ("s", "", 3),               // e.g. cats → cat (generic plural)
+        ]
+        
+        var candidates: [String] = []
+        
+        for rule in suffixRules {
+            if lower.hasSuffix(rule.suffix) {
+                let stem = String(lower.dropLast(rule.suffix.count))
+                if stem.count >= rule.minStemLength {
+                    let candidate = stem + rule.replacement
+                    if candidate != lower && !candidates.contains(candidate) {
+                        candidates.append(candidate)
+                    }
+                }
+            }
+        }
+        
+        return candidates
+    }
+    
     func lookup(_ word: String, completion: @escaping (Result<DictionaryResult, Error>) -> Void) {
         let normalizedWord = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
         // Only lemmatize single words — phrases (e.g. "break a leg") must be looked up as-is
         let isPhrase = normalizedWord.contains(" ")
         let baseForm = isPhrase ? normalizedWord : lemmatize(normalizedWord)
-        let wasLemmatized = !isPhrase && baseForm != normalizedWord && !baseForm.isEmpty
-        let lookupWord = wasLemmatized ? baseForm : normalizedWord
+        var wasLemmatized = !isPhrase && baseForm != normalizedWord && !baseForm.isEmpty
+        var lookupWord = wasLemmatized ? baseForm : normalizedWord
         
         if wasLemmatized {
             print("DictionaryService: Lemmatized '\(normalizedWord)' → '\(lookupWord)'")
@@ -447,7 +517,7 @@ class DictionaryService: ObservableObject {
             return
         }
         
-        // Check macOS built-in dictionary (instant, offline)
+        // Check macOS built-in dictionary with the current word first
         if let systemResult = fetchFromSystemDictionary(word: lookupWord) {
             cacheQueue.async { [weak self] in
                 self?.cache[lookupWord] = systemResult
@@ -456,6 +526,33 @@ class DictionaryService: ObservableObject {
                 completion(.success(systemResult))
             }
             return
+        }
+        
+        // If NLTagger didn't lemmatize and the system dictionary didn't find the word,
+        // try suffix-stripped candidates (e.g. "mammologists" → "mammologist")
+        if !wasLemmatized && !isPhrase {
+            let candidates = suffixStrippedCandidates(normalizedWord)
+            if !candidates.isEmpty {
+                // Try each candidate against the system dictionary
+                for candidate in candidates {
+                    if let systemResult = fetchFromSystemDictionary(word: candidate) {
+                        print("DictionaryService: Suffix-stripped '\(normalizedWord)' → '\(candidate)' (found in system dictionary)")
+                        cacheQueue.async { [weak self] in
+                            self?.cache[candidate] = systemResult
+                            self?.cache[normalizedWord] = systemResult
+                        }
+                        DispatchQueue.main.async {
+                            completion(.success(systemResult))
+                        }
+                        return
+                    }
+                }
+                // No candidate found in system dictionary — use the best candidate
+                // for subsequent API/Wiktionary lookups
+                lookupWord = candidates.first!
+                wasLemmatized = true
+                print("DictionaryService: Suffix-stripped '\(normalizedWord)' → '\(lookupWord)' (for API lookup)")
+            }
         }
         
         // Check local JSON dictionary (legacy fallback)

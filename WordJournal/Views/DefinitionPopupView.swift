@@ -30,17 +30,22 @@ extension View {
 
 struct DefinitionPopupView: View {
     let word: String
-    let result: DictionaryResult
+    let result: DictionaryResult?
+    let isLoading: Bool
     let onAddToJournal: (String, String, String) -> Void  // (definition, partOfSpeech, example)
     let onDismiss: () -> Void
     
     @State private var isHovered = false
     @State private var addedDefinitions: Set<String> = []  // Track which definitions have been added
+    @State private var hoveredButton: String? = nil  // Track hovered + button for animation
     @StateObject private var audioPlayer = PronunciationPlayer()
+    
+    // Accent color for consistent theming
+    private let accentBlue = Color(red: 0.35, green: 0.56, blue: 0.77)  // #5B8FB9-ish
     
     /// Find the first available audio URL from phonetics
     private var audioURL: URL? {
-        guard let phonetics = result.phonetics else { return nil }
+        guard let phonetics = result?.phonetics else { return nil }
         for phonetic in phonetics {
             if let urlString = phonetic.audio, !urlString.isEmpty,
                let url = URL(string: urlString) {
@@ -51,24 +56,23 @@ struct DefinitionPopupView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             // Header
-            HStack {
+            HStack(spacing: 8) {
                 Text(word)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                 
                 if word.contains(" ") {
                     Text("phrase")
-                        .font(.caption)
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.7))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(accentBlue.opacity(0.8))
                         .cornerRadius(4)
-                } else if let phonetic = result.phonetic ?? result.phonetics?.first?.text {
+                } else if let phonetic = result?.phonetic ?? result?.phonetics?.first?.text {
                     Text("[\(phonetic)]")
-                        .font(.subheadline)
+                        .font(.system(size: 14, weight: .light, design: .serif))
                         .foregroundColor(.secondary)
                 }
                 
@@ -77,8 +81,8 @@ struct DefinitionPopupView: View {
                     audioPlayer.pronounce(word: word, audioURL: audioURL)
                 }) {
                     Image(systemName: audioPlayer.isPlaying ? "speaker.wave.3.fill" : "speaker.wave.2.fill")
-                        .foregroundColor(.blue)
-                        .font(.body)
+                        .foregroundColor(accentBlue)
+                        .font(.system(size: 14))
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
@@ -88,88 +92,148 @@ struct DefinitionPopupView: View {
                 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.secondary.opacity(0.5))
+                        .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
                 .pointingHandCursor()
             }
             
-            Divider()
+            // Thin accent divider
+            Rectangle()
+                .fill(accentBlue.opacity(0.3))
+                .frame(height: 1)
             
-            // Meanings
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
-                    ForEach(Array(result.meanings.enumerated()), id: \.offset) { _, meaning in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(meaning.partOfSpeech.capitalized)
-                                .font(.headline)
-                                .foregroundColor(.blue)
+            if isLoading {
+                // Loading state
+                VStack(spacing: 12) {
+                    Spacer()
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Looking up definition...")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, minHeight: 120)
+            } else if let result = result {
+                // Meanings
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(result.meanings.enumerated()), id: \.offset) { meaningIdx, meaning in
                             
-                            ForEach(Array(meaning.definitions.enumerated()), id: \.offset) { idx, definition in
-                                let defKey = "\(meaning.partOfSpeech):\(idx)"
-                                let isAdded = addedDefinitions.contains(defKey)
-                                
-                                HStack(alignment: .top, spacing: 8) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("\(idx + 1). \(definition.definition)")
-                                            .font(.body)
-                                        
-                                        if let example = definition.example {
-                                            Text("\"\(example)\"")
-                                                .font(.caption)
-                                                .italic()
-                                                .foregroundColor(.secondary)
-                                                .padding(.leading, 8)
-                                        }
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Add button for this specific definition
-                                    Button(action: {
-                                        addedDefinitions.insert(defKey)
-                                        onAddToJournal(
-                                            definition.definition,
-                                            meaning.partOfSpeech,
-                                            definition.example ?? ""
-                                        )
-                                    }) {
-                                        Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle.fill")
-                                            .foregroundColor(isAdded ? .green : .blue)
-                                            .font(.title3)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .pointingHandCursor()
-                                    .help(isAdded ? "Added to Journal" : "Add this definition to Journal")
-                                    .disabled(isAdded)
+                            // Visual separator between POS sections
+                            if meaningIdx > 0 {
+                                HStack(spacing: 8) {
+                                    Rectangle()
+                                        .fill(Color.secondary.opacity(0.15))
+                                        .frame(height: 1)
                                 }
-                                .padding(.vertical, 4)
+                                .padding(.vertical, 12)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Part of speech label
+                                Text(meaning.partOfSpeech.capitalized)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(accentBlue)
+                                    .textCase(.uppercase)
+                                    .tracking(0.8)
+                                
+                                ForEach(Array(meaning.definitions.enumerated()), id: \.offset) { idx, definition in
+                                    let defKey = "\(meaning.partOfSpeech):\(idx)"
+                                    let isAdded = addedDefinitions.contains(defKey)
+                                    let isButtonHovered = hoveredButton == defKey
+                                    
+                                    HStack(alignment: .top, spacing: 10) {
+                                        // Definition number
+                                        Text("\(idx + 1)")
+                                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                            .foregroundColor(accentBlue.opacity(0.6))
+                                            .frame(width: 18, alignment: .trailing)
+                                        
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            Text(definition.definition)
+                                                .font(.system(size: 13.5, weight: .regular))
+                                                .lineSpacing(3)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                            
+                                            if let example = definition.example, !example.isEmpty {
+                                                Text("\"\(example)\"")
+                                                    .font(.system(size: 12, weight: .regular, design: .serif))
+                                                    .italic()
+                                                    .foregroundColor(.secondary.opacity(0.8))
+                                                    .lineSpacing(2)
+                                                    .padding(.leading, 4)
+                                            }
+                                        }
+                                        
+                                        Spacer(minLength: 4)
+                                        
+                                        // Add button with hover animation
+                                        Button(action: {
+                                            _ = withAnimation(.spring(response: 0.3)) {
+                                                addedDefinitions.insert(defKey)
+                                            }
+                                            onAddToJournal(
+                                                definition.definition,
+                                                meaning.partOfSpeech,
+                                                definition.example ?? ""
+                                            )
+                                        }) {
+                                            Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle.fill")
+                                                .foregroundColor(isAdded ? .green : accentBlue)
+                                                .font(.system(size: 18))
+                                                .scaleEffect(isButtonHovered && !isAdded ? 1.2 : 1.0)
+                                                .animation(.spring(response: 0.2), value: isButtonHovered)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .pointingHandCursor()
+                                        .onHover { hovered in
+                                            hoveredButton = hovered ? defKey : nil
+                                        }
+                                        .help(isAdded ? "Added to Journal" : "Add this definition to Journal")
+                                        .disabled(isAdded)
+                                    }
+                                    .padding(.vertical, 3)
+                                }
                             }
                         }
                     }
                 }
-            }
-            .frame(maxHeight: 300)
-            
-            // Source attribution
-            if let source = result.sourceUrls?.first {
-                Divider()
-                HStack(spacing: 4) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.caption2)
-                        .foregroundColor(.secondary.opacity(0.6))
-                    Text(dictionarySourceLabel(source))
-                        .font(.caption2)
-                        .foregroundColor(.secondary.opacity(0.6))
-                    Spacer()
+                .frame(maxHeight: 300)
+                
+                // Source attribution
+                if let source = result.sourceUrls?.first {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.1))
+                        .frame(height: 1)
+                    HStack(spacing: 5) {
+                        Image(systemName: "book.closed.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary.opacity(0.45))
+                        Text(dictionarySourceLabel(source))
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary.opacity(0.45))
+                        Spacer()
+                    }
                 }
             }
         }
-        .padding()
-        .frame(width: 400)
-        .background(Color(NSColor.windowBackgroundColor))
-        .cornerRadius(12)
-        .shadow(radius: 10)
+        .padding(20)
+        .frame(width: 420)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(NSColor.windowBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.secondary.opacity(0.25), lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.15), radius: 28, x: 0, y: 10)
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 2)
+        .padding(32)  // Outer transparent padding so corners + shadow aren't clipped
         .onHover { hovering in
             isHovered = hovering
         }

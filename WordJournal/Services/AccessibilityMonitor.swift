@@ -263,6 +263,75 @@ class AccessibilityMonitor: ObservableObject {
         return newContents.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    // MARK: - Selected text bounds
+    
+    /// Returns the screen-space bounding rect of the currently selected text, or nil if unavailable.
+    func getSelectedTextBounds() -> CGRect? {
+        guard hasAccessibilityPermission else { return nil }
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else { return nil }
+        
+        let pid = frontmostApp.processIdentifier
+        let appRef = AXUIElementCreateApplication(pid)
+        
+        // Get focused element
+        var focusedElementRef: CFTypeRef?
+        let focusResult = AXUIElementCopyAttributeValue(
+            appRef,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElementRef
+        )
+        
+        guard focusResult == .success, let focusedElement = focusedElementRef else {
+            print("AccessibilityMonitor: Could not get focused element for bounds")
+            return nil
+        }
+        
+        let element = focusedElement as! AXUIElement
+        
+        // Get selected text range
+        var selectedRangeRef: CFTypeRef?
+        let rangeResult = AXUIElementCopyAttributeValue(
+            element,
+            kAXSelectedTextRangeAttribute as CFString,
+            &selectedRangeRef
+        )
+        
+        guard rangeResult == .success, let rangeValue = selectedRangeRef else {
+            print("AccessibilityMonitor: Could not get selected text range")
+            return nil
+        }
+        
+        // Get bounds for the selected range
+        var boundsRef: CFTypeRef?
+        let boundsResult = AXUIElementCopyParameterizedAttributeValue(
+            element,
+            kAXBoundsForRangeParameterizedAttribute as CFString,
+            rangeValue,
+            &boundsRef
+        )
+        
+        guard boundsResult == .success, let boundsValue = boundsRef else {
+            print("AccessibilityMonitor: Could not get bounds for selected text range")
+            return nil
+        }
+        
+        // Extract CGRect from AXValue
+        var bounds = CGRect.zero
+        if AXValueGetValue(boundsValue as! AXValue, .cgRect, &bounds) {
+            // AX bounds use top-left origin; convert to bottom-left (Cocoa) coordinates
+            if let screen = NSScreen.main {
+                let screenHeight = screen.frame.height
+                let cocoaY = screenHeight - bounds.origin.y - bounds.size.height
+                let cocoaRect = CGRect(x: bounds.origin.x, y: cocoaY, width: bounds.size.width, height: bounds.size.height)
+                print("AccessibilityMonitor: Selected text bounds (Cocoa): \(cocoaRect)")
+                return cocoaRect
+            }
+            return bounds
+        }
+        
+        return nil
+    }
+    
     // MARK: - Cache management
     
     func clearCache() {
