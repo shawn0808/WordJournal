@@ -8,23 +8,18 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Pointing Hand Cursor Modifier
-
-struct PointingHandCursor: ViewModifier {
-    func body(content: Content) -> some View {
-        content.onHover { hovering in
-            if hovering {
-                NSCursor.pointingHand.set()
-            } else {
-                NSCursor.arrow.set()
-            }
-        }
-    }
-}
+// MARK: - Pointing Hand Cursor
 
 extension View {
     func pointingHandCursor() -> some View {
-        modifier(PointingHandCursor())
+        self.onContinuousHover { phase in
+            switch phase {
+            case .active:
+                NSCursor.pointingHand.set()
+            case .ended:
+                NSCursor.arrow.set()
+            }
+        }
     }
 }
 
@@ -182,10 +177,8 @@ struct DefinitionPopupView: View {
                                             )
                                         }) {
                                             Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle.fill")
-                                                .foregroundColor(isAdded ? .green : accentBlue)
-                                                .font(.system(size: 18))
-                                                .scaleEffect(isButtonHovered && !isAdded ? 1.2 : 1.0)
-                                                .animation(.spring(response: 0.2), value: isButtonHovered)
+                                                .foregroundColor(isAdded ? .green : (isButtonHovered ? accentBlue : accentBlue.opacity(0.6)))
+                                                .font(.system(size: isButtonHovered && !isAdded ? 20 : 18))
                                         }
                                         .buttonStyle(.plain)
                                         .pointingHandCursor()
