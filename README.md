@@ -19,17 +19,22 @@ A native macOS menu bar app for looking up words and phrases instantly from any 
 ## Features
 
 - **System-wide word lookup** — Select any text in any app, then Shift+Click or Double-tap Option to see its definition instantly
+- **Smart popup positioning** — Definition popup appears right next to the word you clicked, with intelligent corner placement to avoid covering the text
 - **Menu bar lookup** — Type a word directly in the menu bar dropdown to look it up
-- **macOS built-in dictionary** — Uses Apple's Dictionary Services for instant, offline definitions (~250,000+ words)
-- **Smart lemmatization** — Automatically resolves inflected forms to their base word (e.g., "running" -> "run", "dogs" -> "dog")
+- **Recent lookups** — Quickly re-access your last 5 looked-up words from the menu bar dropdown
+- **macOS built-in dictionary** — Uses Apple's Dictionary Services (New Oxford American Dictionary) for instant, offline definitions
+- **Smart lemmatization** — Automatically resolves inflected forms to their base word (e.g., "running" -> "run", "dogs" -> "dog", "mammologists" -> "mammologist")
 - **Online fallback** — Free Dictionary API + Wiktionary API for phrases, idioms, and uncommon words
 - **Pronunciation** — Click the speaker icon for audio playback (Dictionary API audio + Google TTS fallback, cached locally)
 - **Per-definition add** — Each meaning has its own + button; add only the definitions you want to your journal
-- **Editable journal** — Spreadsheet-style editing with search, sortable columns, per-row pronunciation, and "Play All"
+- **Polished definition popup** — Rounded corners, layered shadows, smooth fade-in/out animations, hover effects, loading spinner, and clean typography
+- **Editable journal** — Spreadsheet-style editing with search, sortable columns, per-row pronunciation, alternating row colors, and "Play All"
 - **Add words manually** — Use the + button in the journal to add words and auto-populate definitions
+- **Delete confirmation** — Confirmation dialog prevents accidental journal entry deletions
 - **Export to CSV** — One-click export of your entire journal
 - **Persistent caching** — Previously looked-up words load instantly, even offline
 - **Keyboard shortcuts** — `⌘J` Open Journal, `⌘,` Preferences, `⌘Q` Quit
+- **Dark mode support** — All views adapt seamlessly to light and dark mode
 
 ## Requirements
 
@@ -125,6 +130,7 @@ WordJournal/
 │   ├── TriggerManager.swift          # Shift+Click & Double-tap Option detection
 │   └── HotKeyManager.swift           # Optional hotkey support
 └── Resources/
+    ├── Assets.xcassets/               # App icon & menu bar icon
     └── dictionary.json               # Local dictionary (optional, legacy)
 ```
 
@@ -134,16 +140,19 @@ WordJournal/
 
 1. **In-memory cache** — Instant (<1ms)
 2. **Persistent file cache** — Previously fetched results (~1ms)
-3. **macOS Dictionary Services** — `DCSCopyTextDefinition` for offline, instant lookups
-4. **Lemmatization** — `NLTagger` resolves inflected forms (plurals, tenses, etc.)
-5. **Free Dictionary API** — Online fallback with pronunciation audio
-6. **Wiktionary API** — Final fallback for phrases and idioms
+3. **macOS Dictionary Services** — `DCSCopyTextDefinition` targeting New Oxford American Dictionary (NOAD) for offline, instant lookups. Headword extraction ensures base forms are displayed (e.g., "dogs" shows "dog")
+4. **Lemmatization** — `NLTagger` resolves common inflected forms (plurals, tenses, etc.)
+5. **Suffix stripping** — Fallback for uncommon words NLTagger doesn't recognize (e.g., "mammologists" -> "mammologist"), with safeguards for non-plural endings (-ous, -us, -ss, etc.)
+6. **Free Dictionary API** — Online fallback with pronunciation audio
+7. **Wiktionary API** — Final fallback for phrases and idioms
 
-### Text Selection
+### Text Selection & Popup Positioning
 
 - **Accessibility API** — Primary method for reading selected text from other apps
 - **Pasteboard fallback** — Simulates `⌘C` with retry mechanism for apps where AX fails (e.g., PDF viewers)
 - **Background polling** — Caches selected text for faster lookups in AX-supported apps
+- **AX bounds detection** — Queries `kAXBoundsForRangeParameterizedAttribute` to position popup near the selected word
+- **Click-location fallback** — When AX bounds are unavailable, uses the Shift+Click location to anchor the popup near the word
 
 ### Storage
 

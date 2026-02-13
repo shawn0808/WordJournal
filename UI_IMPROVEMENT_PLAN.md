@@ -1,23 +1,25 @@
 # UI Improvement Plan
 
 ## Definition Popup
-- [ ] Rounded corners with subtle shadow — modern macOS appearance
-- [ ] Better typography — proper font weights, spacing, and hierarchy for word, phonetic, POS, definitions
-- [ ] Visual separator between different parts of speech
-- [ ] Hover effect on + buttons (color/scale animation)
-- [ ] Loading state — show a spinner while fetching definitions
+- [x] Rounded corners with subtle shadow — modern macOS appearance
+- [x] Better typography — proper font weights, spacing, and hierarchy for word, phonetic, POS, definitions
+- [x] Visual separator between different parts of speech
+- [x] Hover effect on + buttons (color/scale animation)
+- [x] Loading state — show a spinner while fetching definitions
+- [x] Fade in/out animations
+- [x] Position popup near selected word
 
 ## Journal View
-- [ ] Alternating row colors for better readability
-- [ ] Empty state — friendly message when journal is empty ("No words yet. Look up a word to get started!")
-- [ ] Better toolbar design — more polished buttons with proper spacing
-- [ ] Confirmation dialog before deleting an entry
+- [x] Alternating row colors for better readability
+- [x] Empty state — friendly message when journal is empty
+- [x] Better toolbar design — polished search field, styled buttons with hover effects, entry count badge
+- [x] Confirmation dialog before deleting an entry
 
 ## Menu Bar Dropdown
-- [ ] Visual polish — subtle icons, better spacing, word count badge
-- [ ] Recent lookups — show last 3-5 words for quick re-access
+- [x] Visual polish — subtle icons, better spacing, word count badge
+- [x] Recent lookups — show last 5 words for quick re-access
 
 ## General
-- [ ] Consistent color scheme — define accent colors across all views
-- [ ] Dark mode support — ensure everything looks good in both light and dark mode
-- [ ] Smooth animations — fade in popup, animate journal additions
+- [x] Consistent color scheme — accentBlue (0.35, 0.56, 0.77) used across all views
+- [x] Dark mode support — uses system colors (NSColor.windowBackgroundColor, .secondary, etc.)
+- [x] Smooth animations — fade in popup, hover effects, animated deletions

@@ -23,6 +23,22 @@ class DictionaryService: ObservableObject {
     private var cache: [String: DictionaryResult] = [:]
     private let cacheQueue = DispatchQueue(label: "com.wordjournal.cache")
     
+    /// Recently looked up words (most recent first, max 5)
+    @Published var recentLookups: [String] = []
+    private let maxRecentLookups = 5
+    
+    private func addToRecentLookups(_ word: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            // Remove if already in list, then prepend
+            self.recentLookups.removeAll { $0.lowercased() == word.lowercased() }
+            self.recentLookups.insert(word, at: 0)
+            if self.recentLookups.count > self.maxRecentLookups {
+                self.recentLookups = Array(self.recentLookups.prefix(self.maxRecentLookups))
+            }
+        }
+    }
+    
     // Persistent file-based cache directory
     private static let persistentCacheDir: URL = {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
@@ -494,6 +510,14 @@ class DictionaryService: ObservableObject {
     func lookup(_ word: String, completion: @escaping (Result<DictionaryResult, Error>) -> Void) {
         let normalizedWord = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
+        // Wrap completion to track recent lookups on success
+        let trackedCompletion: (Result<DictionaryResult, Error>) -> Void = { [weak self] result in
+            if case .success(let dictResult) = result {
+                self?.addToRecentLookups(dictResult.word)
+            }
+            completion(result)
+        }
+        
         // Only lemmatize single words — phrases (e.g. "break a leg") must be looked up as-is
         let isPhrase = normalizedWord.contains(" ")
         let baseForm = isPhrase ? normalizedWord : lemmatize(normalizedWord)
@@ -512,7 +536,7 @@ class DictionaryService: ObservableObject {
         
         if let cached = cachedResult {
             DispatchQueue.main.async {
-                completion(.success(cached))
+                trackedCompletion(.success(cached))
             }
             return
         }
@@ -523,7 +547,7 @@ class DictionaryService: ObservableObject {
                 self?.cache[lookupWord] = systemResult
             }
             DispatchQueue.main.async {
-                completion(.success(systemResult))
+                trackedCompletion(.success(systemResult))
             }
             return
         }
@@ -542,7 +566,7 @@ class DictionaryService: ObservableObject {
                             self?.cache[normalizedWord] = systemResult
                         }
                         DispatchQueue.main.async {
-                            completion(.success(systemResult))
+                            trackedCompletion(.success(systemResult))
                         }
                         return
                     }
@@ -584,7 +608,7 @@ class DictionaryService: ObservableObject {
             }
             
             DispatchQueue.main.async {
-                completion(.success(result))
+                trackedCompletion(.success(result))
             }
             return
         }
@@ -598,7 +622,7 @@ class DictionaryService: ObservableObject {
                     self?.saveToPersistentCache(word: lookupWord, result: apiResult)
                 }
                 DispatchQueue.main.async {
-                    completion(.success(apiResult))
+                    trackedCompletion(.success(apiResult))
                 }
             case .failure(_):
                 // Dictionary API failed — try Wiktionary as fallback
@@ -611,12 +635,12 @@ class DictionaryService: ObservableObject {
                             self?.saveToPersistentCache(word: lookupWord, result: wiktApiResult)
                         }
                         DispatchQueue.main.async {
-                            completion(.success(wiktApiResult))
+                            trackedCompletion(.success(wiktApiResult))
                         }
                     case .failure(let wiktError):
                         print("DictionaryService: Wiktionary also failed for '\(lookupWord)'")
                         DispatchQueue.main.async {
-                            completion(.failure(wiktError))
+                            trackedCompletion(.failure(wiktError))
                         }
                     }
                 }

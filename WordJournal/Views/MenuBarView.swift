@@ -12,33 +12,49 @@ struct MenuBarView: View {
     let showPreferences: () -> Void
     let onLookupWord: (String) -> Void
     @ObservedObject var journalStorage: JournalStorage
+    @ObservedObject var dictionaryService = DictionaryService.shared
     @Environment(\.dismiss) private var dismiss
     @State private var lookupText = ""
     @FocusState private var isLookupFocused: Bool
     
+    // Accent color consistent with the rest of the app
+    private let accentBlue = Color(red: 0.35, green: 0.56, blue: 0.77)
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Word Journal")
-                    .font(.headline)
+            // MARK: - Header
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Word Journal")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                    
+                    HStack(spacing: 4) {
+                        Text("\(journalStorage.entries.count)")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(accentBlue.opacity(0.8)))
+                        Text("words saved")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                }
                 
-                Text("\(journalStorage.entries.count) entries")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Spacer()
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             
-            // Lookup field
-            HStack(spacing: 6) {
+            // MARK: - Lookup field
+            HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
-                    .font(.caption)
+                    .font(.system(size: 12))
                 
                 TextField("Look up a word...", text: $lookupText)
                     .textFieldStyle(.plain)
-                    .font(.body)
+                    .font(.system(size: 13))
                     .focused($isLookupFocused)
                     .onSubmit {
                         let word = lookupText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -47,17 +63,69 @@ struct MenuBarView: View {
                         dismiss()
                         onLookupWord(word)
                     }
+                
+                if !lookupText.isEmpty {
+                    Button(action: { lookupText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .background(Color(NSColor.textBackgroundColor))
-            .cornerRadius(6)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(NSColor.textBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+            )
             .padding(.horizontal, 10)
             .padding(.bottom, 8)
             
+            // MARK: - Recent Lookups
+            if !dictionaryService.recentLookups.isEmpty {
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("RECENT")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .tracking(0.8)
+                        .padding(.horizontal, 14)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+                    
+                    ForEach(dictionaryService.recentLookups, id: \.self) { word in
+                        HoverButton(action: {
+                            dismiss()
+                            onLookupWord(word)
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary.opacity(0.5))
+                                    .frame(width: 16, alignment: .center)
+                                
+                                Text(word)
+                                    .font(.system(size: 13))
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 5)
+                        }
+                    }
+                }
+                .padding(.bottom, 4)
+            }
+            
             Divider()
             
-            // Menu items
+            // MARK: - Menu items
             VStack(alignment: .leading, spacing: 2) {
                 menuButton(title: "Open Journal", icon: "book.fill", shortcut: "⌘J") {
                     dismiss()
@@ -73,13 +141,13 @@ struct MenuBarView: View {
             
             Divider()
             
-            // Quit
+            // MARK: - Quit
             menuButton(title: "Quit Word Journal", icon: "power", shortcut: "⌘Q") {
                 NSApplication.shared.terminate(nil)
             }
             .padding(.vertical, 4)
         }
-        .frame(width: 240)
+        .frame(width: 260)
         .background(KeyboardShortcutHandler(
             onCmdJ: {
                 dismiss()
@@ -106,16 +174,18 @@ struct MenuBarView: View {
         HoverButton(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
+                    .font(.system(size: 12))
                     .frame(width: 16, alignment: .center)
                 
                 Text(title)
+                    .font(.system(size: 13))
                 
                 Spacer()
                 
                 if let shortcut = shortcut {
                     Text(shortcut)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary.opacity(0.5))
                 }
             }
             .padding(.horizontal, 14)
@@ -130,6 +200,7 @@ struct HoverButton<Content: View>: View {
     let action: () -> Void
     let content: () -> Content
     
+    private let accentBlue = Color(red: 0.35, green: 0.56, blue: 0.77)
     @State private var isHovered = false
     
     init(action: @escaping () -> Void, @ViewBuilder content: @escaping () -> Content) {
@@ -142,15 +213,18 @@ struct HoverButton<Content: View>: View {
             content()
                 .foregroundColor(isHovered ? .white : .primary)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isHovered ? Color.accentColor : Color.clear)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(isHovered ? accentBlue : Color.clear)
                         .padding(.horizontal, 4)
                 )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .pointingHandCursor()
         .onHover { hovering in
-            isHovered = hovering
+            withAnimation(.easeInOut(duration: 0.12)) {
+                isHovered = hovering
+            }
         }
     }
 }
