@@ -29,6 +29,7 @@
 		103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMonitor.swift; sourceTree = "<group>"; };
 		1109AD88FEC84218AE0E961D /* DictionaryResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryResult.swift; sourceTree = "<group>"; };
 		22D96B08AF9B4569AF503B82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C4D2E1A3F5B6789012345678 /* WordJournal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WordJournal.entitlements; sourceTree = "<group>"; };
 		2BD3632E032E41489F61B78C /* dictionary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dictionary.json; sourceTree = "<group>"; };
 		432AB30015D14538984D94CC /* JournalStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStorage.swift; sourceTree = "<group>"; };
 		529DC1575D12445FA137B024 /* DefinitionPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefinitionPopupView.swift; sourceTree = "<group>"; };
@@ -77,6 +78,7 @@
 			children = (
 				E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */,
 				22D96B08AF9B4569AF503B82 /* Info.plist */,
+				C4D2E1A3F5B6789012345678 /* WordJournal.entitlements */,
 				5536886D24084B7F9EE6CA3F /* Models */,
 				11D5AE2425E940EE8BF13DD2 /* Services */,
 				732F74AEB0FF4A949949094E /* Views */,
@@ -366,11 +368,13 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = WordJournal/WordJournal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -422,11 +426,13 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = WordJournal/WordJournal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
