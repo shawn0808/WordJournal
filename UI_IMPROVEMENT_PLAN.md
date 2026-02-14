@@ -19,6 +19,13 @@
 - [x] Visual polish — subtle icons, better spacing, word count badge
 - [x] Recent lookups — show last 5 words for quick re-access
 
+## Synonyms & Antonyms
+- [ ] Display synonyms/antonyms in the Definition Popup (below each definition, lighter style)
+- [ ] Include synonyms/antonyms when saving to Journal (add columns to WordEntry + JournalStorage)
+- [ ] Free Dictionary API already returns structured synonyms/antonyms — just display them
+- [ ] NOAD (macOS system dictionary) does not provide synonyms (thesaurus is a separate dictionary)
+- [ ] Wiktionary — would need extra parsing or a separate call for synonym data
+
 ## General
 - [x] Consistent color scheme — accentBlue (0.35, 0.56, 0.77) used across all views
 - [x] Dark mode support — uses system colors (NSColor.windowBackgroundColor, .secondary, etc.)
