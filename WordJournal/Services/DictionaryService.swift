@@ -50,6 +50,7 @@ class DictionaryService: ObservableObject {
     private init() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.loadPersistentCache()
+            self?.loadRecentLookupsFromCache()
             self?.loadLocalDictionary()
         }
     }
@@ -69,12 +70,6 @@ class DictionaryService: ObservableObject {
         for file in files where file.pathExtension == "json" {
             if let data = try? Data(contentsOf: file),
                let result = try? JSONDecoder().decode(DictionaryResult.self, from: data) {
-                // Skip cached macOS Dictionary results — they're instant to re-fetch
-                // and we want them re-parsed with the latest parser logic
-                if result.sourceUrls?.contains("macOS Dictionary") == true {
-                    try? fm.removeItem(at: file)
-                    continue
-                }
                 let word = result.word.lowercased()
                 cache[word] = result
                 loaded += 1
@@ -83,10 +78,43 @@ class DictionaryService: ObservableObject {
         print("DictionaryService: Loaded \(loaded) entries from persistent cache")
     }
     
+    /// Load recent lookups from cache by sorting files by modification date (most recent first)
+    private func loadRecentLookupsFromCache() {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: Self.persistentCacheDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        
+        // Get (file, modDate) pairs and sort by most recent
+        var fileEntries: [(url: URL, date: Date, word: String)] = []
+        for file in files where file.pathExtension == "json" {
+            guard let attrs = try? file.resourceValues(forKeys: [.contentModificationDateKey]),
+                  let modDate = attrs.contentModificationDate,
+                  let data = try? Data(contentsOf: file),
+                  let result = try? JSONDecoder().decode(DictionaryResult.self, from: data) else { continue }
+            fileEntries.append((url: file, date: modDate, word: result.word))
+        }
+        
+        fileEntries.sort { $0.date > $1.date }
+        let recent = Array(fileEntries.prefix(maxRecentLookups)).map { $0.word }
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.recentLookups = recent
+            print("DictionaryService: Restored \(recent.count) recent lookups from cache")
+        }
+    }
+    
     private func saveToPersistentCache(word: String, result: DictionaryResult) {
         let url = persistentCacheURL(for: word)
         if let data = try? JSONEncoder().encode(result) {
             try? data.write(to: url)
+        }
+    }
+    
+    /// Touch the cache file to update its modification date (for recent lookups tracking)
+    private func touchCacheFile(for word: String) {
+        let url = persistentCacheURL(for: word)
+        let fm = FileManager.default
+        if fm.fileExists(atPath: url.path) {
+            try? fm.setAttributes([.modificationDate: Date()], ofItemAtPath: url.path)
         }
     }
     
@@ -209,9 +237,10 @@ class DictionaryService: ObservableObject {
             let parts = text.components(separatedBy: "|")
             if parts.count >= 3 {
                 // First part is the dictionary headword (e.g. "mammologist" even if we looked up "mammologists")
-                // NOAD appends homonym numbers like "Amazon 1", "bank 2" — strip trailing digits
+                // NOAD may include POS/annotations: "incorporate verb [with object]", "Amazon 1"
+                // Strip trailing homonym numbers, POS labels, and bracketed annotations
                 var headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                headwordPart = headwordPart.replacingOccurrences(of: "\\s+\\d+$", with: "", options: .regularExpression)
+                headwordPart = cleanHeadword(headwordPart)
                 if !headwordPart.isEmpty {
                     headword = headwordPart
                 }
@@ -224,7 +253,7 @@ class DictionaryService: ObservableObject {
             } else if parts.count == 2 {
                 // "word | rest..."
                 var headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                headwordPart = headwordPart.replacingOccurrences(of: "\\s+\\d+$", with: "", options: .regularExpression)
+                headwordPart = cleanHeadword(headwordPart)
                 if !headwordPart.isEmpty {
                     headword = headwordPart
                 }
@@ -256,23 +285,37 @@ class DictionaryService: ObservableObject {
         // The POS label may appear inline: "noun a slowly moving mass..." or on its own line
         var meanings: [Meaning] = []
         
-        // Build a regex that finds POS labels at word boundaries
-        let posPattern = "\\b(" + posLabels.joined(separator: "|") + ")\\b"
-        
-        // Find all POS positions in the body
+        // Find POS labels that act as section headers (not words inside sentences).
+        // A POS label is a header when it appears:
+        //   - At the very start of the body text, OR
+        //   - Immediately after ". " (end of a definition sentence)
+        // This prevents matching "verb" inside "the objective of a verb".
         struct POSMatch {
             let pos: String
             let contentStart: String.Index
         }
         
         var posMatches: [POSMatch] = []
+        let posPattern = "\\b(" + posLabels.joined(separator: "|") + ")\\b"
         if let regex = try? NSRegularExpression(pattern: posPattern, options: [.caseInsensitive]) {
             let nsBody = bodyText as NSString
             let results = regex.matches(in: bodyText, range: NSRange(location: 0, length: nsBody.length))
             for match in results {
+                let matchLoc = match.range.location
                 guard let swiftRange = Range(match.range, in: bodyText) else { continue }
                 let posStr = String(bodyText[swiftRange]).lowercased()
-                posMatches.append(POSMatch(pos: posStr, contentStart: swiftRange.upperBound))
+                
+                // Only accept as a POS header if at start of text or preceded by ". "
+                let isAtStart = matchLoc == 0
+                var isAfterSentenceEnd = false
+                if matchLoc >= 2 {
+                    let preceding = nsBody.substring(with: NSRange(location: matchLoc - 2, length: 2))
+                    isAfterSentenceEnd = preceding == ". "
+                }
+                
+                if isAtStart || isAfterSentenceEnd {
+                    posMatches.append(POSMatch(pos: posStr, contentStart: swiftRange.upperBound))
+                }
             }
         }
         
@@ -332,6 +375,27 @@ class DictionaryService: ObservableObject {
         )
     }
     
+    /// Clean a headword extracted from NOAD pipe-separated header.
+    /// Strips trailing homonym numbers ("Amazon 1"), POS labels ("incorporate verb"),
+    /// and bracketed annotations ("incorporate verb [with object]").
+    private func cleanHeadword(_ raw: String) -> String {
+        var cleaned = raw
+        // Strip bracketed annotations first: [with object], [mass noun], etc.
+        cleaned = cleaned.replacingOccurrences(of: "\\[.*?\\]", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Strip trailing POS labels (noun, verb, adjective, etc.)
+        // Use regex for robust matching regardless of extra whitespace
+        let posLabels = ["noun", "verb", "adjective", "adverb", "pronoun", "preposition",
+            "conjunction", "interjection", "exclamation", "determiner", "article",
+            "abbreviation", "prefix", "suffix", "combining form", "modal verb",
+            "auxiliary verb", "linking verb", "phrasal verb"]
+        let posPattern = "\\s+(" + posLabels.sorted(by: { $0.count > $1.count }).joined(separator: "|") + ")\\s*$"
+        cleaned = cleaned.replacingOccurrences(of: posPattern, with: "", options: [.regularExpression, .caseInsensitive])
+        // Strip trailing homonym numbers: "Amazon 1" → "Amazon"
+        cleaned = cleaned.replacingOccurrences(of: "\\s+\\d+$", with: "", options: .regularExpression)
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     /// Strip bracketed grammar annotations like [mass noun], [with object], [no object], [count noun], etc.
     private func stripBracketedAnnotations(_ text: String) -> String {
         return text
@@ -349,6 +413,24 @@ class DictionaryService: ObservableObject {
         
         guard !cleanedText.isEmpty else { return [] }
         
+        // Helper: split a single chunk on bullet points (•) and extract examples from each part
+        func parseParts(_ text: String) -> [Definition] {
+            let bulletParts = text.components(separatedBy: "•")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { $0.count >= 3 }
+            
+            if bulletParts.count > 1 {
+                // Has sub-definitions separated by •
+                return bulletParts.map { part in
+                    let (def, example) = extractExample(from: part)
+                    return Definition(definition: def, example: example, synonyms: nil, antonyms: nil)
+                }
+            } else {
+                let (def, example) = extractExample(from: text)
+                return [Definition(definition: def, example: example, synonyms: nil, antonyms: nil)]
+            }
+        }
+        
         // Try splitting by numbered definitions (1 ..., 2 ...)
         let numberedPattern = "(?:^|\\s)\\d+\\s+"
         if let regex = try? NSRegularExpression(pattern: numberedPattern),
@@ -362,28 +444,15 @@ class DictionaryService: ObservableObject {
                 let part = nsText.substring(with: NSRange(location: contentStart, length: contentEnd - contentStart))
                 let cleaned = part.trimmingCharacters(in: .whitespacesAndNewlines)
                 if cleaned.count >= 3 {
-                    let (def, example) = extractExample(from: cleaned)
-                    definitions.append(Definition(definition: def, example: example, synonyms: nil, antonyms: nil))
+                    // Each numbered def may contain bullet sub-definitions (•)
+                    definitions.append(contentsOf: parseParts(cleaned))
                 }
             }
         }
         
         // If no numbered defs found, try splitting by bullet points or treat as a single definition
         if definitions.isEmpty {
-            // Split by bullet characters
-            let bulletParts = cleanedText.components(separatedBy: "•").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count >= 3 }
-            if bulletParts.count > 1 {
-                for part in bulletParts {
-                    let (def, example) = extractExample(from: part)
-                    definitions.append(Definition(definition: def, example: example, synonyms: nil, antonyms: nil))
-                }
-            } else {
-                // Single definition — use the whole text
-                if cleanedText.count >= 3 {
-                    let (def, example) = extractExample(from: cleanedText)
-                    definitions.append(Definition(definition: def, example: example, synonyms: nil, antonyms: nil))
-                }
-            }
+            definitions = parseParts(cleanedText)
         }
         
         return definitions
@@ -413,9 +482,12 @@ class DictionaryService: ObservableObject {
                 return (beforeColon, example)
             }
             
-            // Unquoted example: the text after ": " starts with a lowercase letter
-            // (definitions/labels typically start uppercase, examples start lowercase)
-            if let firstChar = afterColon.first, firstChar.isLowercase {
+            // Unquoted example: the text after ": " is a sentence.
+            // Accept both lowercase starts ("the cat sat") and uppercase starts ("I went home")
+            // as long as it looks like a sentence (contains spaces) and not a section header
+            // (NOAD section headers are ALL-CAPS like "ORIGIN", "PHRASES", "DERIVATIVES").
+            if let firstChar = afterColon.first,
+               (firstChar.isLowercase || (firstChar.isUppercase && afterColon.contains(" ") && afterColon != afterColon.uppercased())) {
                 // Clean up trailing period or sub-definitions marked with •
                 var example = afterColon
                 // If there's a bullet point (•), only take the first example
@@ -538,23 +610,50 @@ class DictionaryService: ObservableObject {
         }
         
         if let cached = cachedResult {
+            // Touch the cache file so its modification date reflects this lookup
+            cacheQueue.async { [weak self] in
+                self?.touchCacheFile(for: lookupWord)
+                if lookupWord != normalizedWord {
+                    self?.touchCacheFile(for: normalizedWord)
+                }
+            }
             DispatchQueue.main.async {
                 trackedCompletion(.success(cached))
             }
             return
         }
         
-        // Check macOS built-in dictionary with the current word first
+        // Check macOS built-in dictionary
         // Skip for phrases — DCSGetTermRangeInString matches individual words within the phrase
         // (e.g. "break a leg" returns definition for "break"), so phrases must go to API/Wiktionary
-        if !isPhrase, let systemResult = fetchFromSystemDictionary(word: lookupWord) {
-            cacheQueue.async { [weak self] in
-                self?.cache[lookupWord] = systemResult
+        // Try the original word first, then the lemmatized form — NLTagger sometimes produces
+        // incorrect lemmas (e.g. "objective" → "objectif") that wouldn't be found
+        if !isPhrase {
+            // Try original word first (if different from lemmatized)
+            if wasLemmatized, let systemResult = fetchFromSystemDictionary(word: normalizedWord) {
+                print("DictionaryService: Found '\(normalizedWord)' in system dictionary (lemma '\(lookupWord)' skipped)")
+                lookupWord = normalizedWord
+                wasLemmatized = false
+                cacheQueue.async { [weak self] in
+                    self?.cache[normalizedWord] = systemResult
+                    self?.saveToPersistentCache(word: normalizedWord, result: systemResult)
+                }
+                DispatchQueue.main.async {
+                    trackedCompletion(.success(systemResult))
+                }
+                return
             }
-            DispatchQueue.main.async {
-                trackedCompletion(.success(systemResult))
+            // Then try the lemmatized/current form
+            if let systemResult = fetchFromSystemDictionary(word: lookupWord) {
+                cacheQueue.async { [weak self] in
+                    self?.cache[lookupWord] = systemResult
+                    self?.saveToPersistentCache(word: lookupWord, result: systemResult)
+                }
+                DispatchQueue.main.async {
+                    trackedCompletion(.success(systemResult))
+                }
+                return
             }
-            return
         }
         
         // If NLTagger didn't lemmatize and the system dictionary didn't find the word,
@@ -569,6 +668,7 @@ class DictionaryService: ObservableObject {
                         cacheQueue.async { [weak self] in
                             self?.cache[candidate] = systemResult
                             self?.cache[normalizedWord] = systemResult
+                            self?.saveToPersistentCache(word: candidate, result: systemResult)
                         }
                         DispatchQueue.main.async {
                             trackedCompletion(.success(systemResult))

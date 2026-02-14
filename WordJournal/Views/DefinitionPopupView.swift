@@ -152,6 +152,7 @@ struct DefinitionPopupView: View {
                                                 .font(.system(size: 13.5, weight: .regular))
                                                 .lineSpacing(3)
                                                 .fixedSize(horizontal: false, vertical: true)
+                                                .textSelection(.enabled)
                                             
                                             if let example = definition.example, !example.isEmpty {
                                                 Text("\"\(example)\"")
@@ -160,6 +161,7 @@ struct DefinitionPopupView: View {
                                                     .foregroundColor(.secondary.opacity(0.8))
                                                     .lineSpacing(2)
                                                     .padding(.leading, 4)
+                                                    .textSelection(.enabled)
                                             }
                                         }
                                         

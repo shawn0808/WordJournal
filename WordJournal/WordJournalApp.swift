@@ -251,10 +251,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.lastAnchorRect = selectionBounds
         print("AppDelegate: Selection bounds: \(String(describing: selectionBounds))")
         
+        // Show the macOS spinning wait cursor while the lookup runs
+        let busyCursor: NSCursor = {
+            // Try to access the private spinning wait cursor
+            if let spinCursor = NSCursor.perform(NSSelectorFromString("busyButClickableCursor"))?.takeUnretainedValue() as? NSCursor {
+                return spinCursor
+            }
+            // Fallback: use the standard macOS "operation not allowed" cursor as a visual hint
+            return NSCursor.operationNotAllowed
+        }()
+        busyCursor.push()
+        
         // Show loading popup immediately, anchored to the selected text
         self.showDefinitionPopup(word: String(word), definition: nil, isLoading: true, anchorRect: selectionBounds)
         
         DictionaryService.shared.lookup(String(word)) { result in
+            DispatchQueue.main.async {
+                NSCursor.pop()  // Remove the busy cursor
+            }
             switch result {
             case .success(let definition):
                 print("AppDelegate: Dictionary lookup successful")

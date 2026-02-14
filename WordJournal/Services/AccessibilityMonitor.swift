@@ -131,17 +131,27 @@ class AccessibilityMonitor: ObservableObject {
         print("AccessibilityMonitor: getCurrentSelectedText() - App: \(appName) (PID: \(currentPID))")
         print("AccessibilityMonitor: Cache: '\(currentCache)' from PID: \(currentCachePID)")
         
-        // Option 3: Check if cached text is from the SAME app
-        // BUT skip cache for apps where AX API doesn't work (e.g., PDF viewers)
-        // because the polling can't update the cache for those apps
-        if !currentCache.isEmpty && currentCachePID == currentPID && !isNonAX {
-            print("AccessibilityMonitor: ✅ Using cached text (same app): '\(currentCache)'")
-            return currentCache
+        // #region agent log
+        do {
+            let wouldUseCache = !currentCache.isEmpty && currentCachePID == currentPID && !isNonAX
+            let logLine = "{\"id\":\"log_get_selection\",\"timestamp\":\(Int(Date().timeIntervalSince1970 * 1000)),\"location\":\"AccessibilityMonitor.swift:getCurrentSelectedText\",\"message\":\"cache vs live\",\"data\":{\"app\":\"\(appName)\",\"pid\":\(currentPID),\"cache\":\"\(currentCache)\",\"wouldUseCache\":\(wouldUseCache)},\"hypothesisId\":\"H1\"}\n"
+            if let d = logLine.data(using: .utf8), let fh = FileHandle(forWritingAtPath: "/Users/415350992/Downloads/vibe_coding/WordJournal/.cursor/debug.log") { fh.seekToEndOfFile(); fh.write(d); fh.closeFile() }
         }
+        // #endregion
         
-        // Cache is stale (different app) or empty.
-        // Try live Accessibility API read first.
-        if let liveText = readSelectedTextViaAccessibility(pid: currentPID) {
+        // Always try fresh read first so we don't return stale cache (e.g. "youtube.com"
+        // when user just selected a different word in Chrome). Use cache only as fallback.
+        
+        // 1. Try live Accessibility API read first.
+        let liveAXResult = readSelectedTextViaAccessibility(pid: currentPID)
+        // #region agent log
+        do {
+            let liveStr = liveAXResult ?? ""
+            let logLine = "{\"id\":\"log_live_ax\",\"timestamp\":\(Int(Date().timeIntervalSince1970 * 1000)),\"location\":\"AccessibilityMonitor.swift:getCurrentSelectedText\",\"message\":\"live AX result\",\"data\":{\"gotText\":\(liveAXResult != nil),\"text\":\"\(liveStr)\"},\"hypothesisId\":\"H2\"}\n"
+            if let d = logLine.data(using: .utf8), let fh = FileHandle(forWritingAtPath: "/Users/415350992/Downloads/vibe_coding/WordJournal/.cursor/debug.log") { fh.seekToEndOfFile(); fh.write(d); fh.closeFile() }
+        }
+        // #endregion
+        if let liveText = liveAXResult {
             let trimmed = liveText.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 print("AccessibilityMonitor: ✅ Got live text from Accessibility API: '\(trimmed)'")
@@ -153,14 +163,8 @@ class AccessibilityMonitor: ObservableObject {
             }
         }
         
-        // Mark this app as non-AX so we don't use stale cache for it next time
-        cacheLock.lock()
-        nonAXApps.insert(currentPID)
-        cacheLock.unlock()
-        
-        // Option 2 fallback: Accessibility API failed (e.g., Preview, Chrome, etc.)
-        // Use pasteboard method (simulate Cmd+C)
-        print("AccessibilityMonitor: Accessibility API failed for \(appName), trying pasteboard method...")
+        // 2. Try pasteboard (simulate Cmd+C) — works in Chrome, PDF viewers, etc.
+        print("AccessibilityMonitor: Live AX empty/failed for \(appName), trying pasteboard...")
         let pasteboardText = getTextFromPasteboard()
         if !pasteboardText.isEmpty {
             print("AccessibilityMonitor: ✅ Got text from pasteboard: '\(pasteboardText)'")
@@ -169,6 +173,19 @@ class AccessibilityMonitor: ObservableObject {
             cachedFromAppPID = currentPID
             cacheLock.unlock()
             return pasteboardText
+        }
+        
+        // 3. Fallback: use cache if same app (e.g. AX and pasteboard both failed this time)
+        if !currentCache.isEmpty && currentCachePID == currentPID && !isNonAX {
+            print("AccessibilityMonitor: Using cached text (fallback): '\(currentCache)'")
+            return currentCache
+        }
+        
+        // Mark this app as non-AX only when we have no cache for it
+        if currentCachePID != currentPID || currentCache.isEmpty {
+            cacheLock.lock()
+            nonAXApps.insert(currentPID)
+            cacheLock.unlock()
         }
         
         print("AccessibilityMonitor: ❌ All methods failed for \(appName)")
