@@ -209,7 +209,9 @@ class DictionaryService: ObservableObject {
             let parts = text.components(separatedBy: "|")
             if parts.count >= 3 {
                 // First part is the dictionary headword (e.g. "mammologist" even if we looked up "mammologists")
-                let headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                // NOAD appends homonym numbers like "Amazon 1", "bank 2" — strip trailing digits
+                var headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                headwordPart = headwordPart.replacingOccurrences(of: "\\s+\\d+$", with: "", options: .regularExpression)
                 if !headwordPart.isEmpty {
                     headword = headwordPart
                 }
@@ -221,7 +223,8 @@ class DictionaryService: ObservableObject {
                 bodyText = parts.dropFirst(2).joined(separator: "|").trimmingCharacters(in: .whitespacesAndNewlines)
             } else if parts.count == 2 {
                 // "word | rest..."
-                let headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                var headwordPart = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                headwordPart = headwordPart.replacingOccurrences(of: "\\s+\\d+$", with: "", options: .regularExpression)
                 if !headwordPart.isEmpty {
                     headword = headwordPart
                 }
