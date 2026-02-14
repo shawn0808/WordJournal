@@ -542,7 +542,9 @@ class DictionaryService: ObservableObject {
         }
         
         // Check macOS built-in dictionary with the current word first
-        if let systemResult = fetchFromSystemDictionary(word: lookupWord) {
+        // Skip for phrases — DCSGetTermRangeInString matches individual words within the phrase
+        // (e.g. "break a leg" returns definition for "break"), so phrases must go to API/Wiktionary
+        if !isPhrase, let systemResult = fetchFromSystemDictionary(word: lookupWord) {
             cacheQueue.async { [weak self] in
                 self?.cache[lookupWord] = systemResult
             }
