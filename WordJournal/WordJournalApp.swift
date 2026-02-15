@@ -202,12 +202,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func handleLookup() {
         print("AppDelegate: handleLookup() called")
-        
         // Check permissions first
         AccessibilityMonitor.shared.checkAccessibilityPermission(showPrompt: false)
         print("AppDelegate: Accessibility permission status: \(AccessibilityMonitor.shared.hasAccessibilityPermission)")
         
-        let selectedText = AccessibilityMonitor.shared.getCurrentSelectedText()
+        let selectedText: String
+        if TriggerManager.shared.triggerMethod == .optionClick {
+            let preTrigger = TriggerManager.shared.consumeOptionPreTriggerTextForFrontmostApp()
+            if !preTrigger.isEmpty {
+                selectedText = preTrigger
+            } else {
+            // Option+Click can clear selection in PDFs/browsers; prefer cached text first.
+                let cached = AccessibilityMonitor.shared.getCachedSelectedTextForFrontmostApp()
+                if !cached.isEmpty {
+                    print("AppDelegate: Using cached selection for Option+Click: '\(cached)'")
+                    selectedText = cached
+                } else {
+                    selectedText = AccessibilityMonitor.shared.getCurrentSelectedText()
+                }
+            }
+        } else {
+            selectedText = AccessibilityMonitor.shared.getCurrentSelectedText()
+        }
         print("AppDelegate: Selected text: '\(selectedText)'")
         
         guard !selectedText.isEmpty else {
@@ -216,7 +232,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 alert.messageText = "No Text Selected"
-                alert.informativeText = "Please select a word or phrase first, then Shift+Click to look it up"
+                alert.informativeText = "Please select a word or phrase first, then \(TriggerManager.shared.triggerMethod.displayName) to look it up"
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()

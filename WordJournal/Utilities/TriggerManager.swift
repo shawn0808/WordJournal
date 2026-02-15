@@ -9,11 +9,13 @@ import AppKit
 
 enum TriggerMethod: String, CaseIterable {
     case shiftClick = "shiftClick"
+    case optionClick = "optionClick"
     case doubleOption = "doubleOption"
     
     var displayName: String {
         switch self {
         case .shiftClick: return "Shift + Click"
+        case .optionClick: return "Option + Click"
         case .doubleOption: return "Double-tap Option (⌥)"
         }
     }
@@ -21,6 +23,7 @@ enum TriggerMethod: String, CaseIterable {
     var description: String {
         switch self {
         case .shiftClick: return "Select text, then hold Shift and click to look it up"
+        case .optionClick: return "Select text, then hold Option (⌥) and click to look it up"
         case .doubleOption: return "Select text, then quickly press Option (⌥) twice to look it up"
         }
     }
@@ -28,6 +31,7 @@ enum TriggerMethod: String, CaseIterable {
     var icon: String {
         switch self {
         case .shiftClick: return "cursorarrow.click"
+        case .optionClick: return "cursorarrow.click"
         case .doubleOption: return "option"
         }
     }
@@ -58,10 +62,24 @@ class TriggerManager: ObservableObject {
     private let doubleTapThreshold: TimeInterval = 0.4  // 400ms window for double-tap
     private var optionWasPartOfCombo = false
     
+    // Option+Click pre-trigger snapshot (captured on Option key down)
+    private var optionPreTriggerText: String = ""
+    private var optionPreTriggerPID: pid_t = 0
+    
     private init() {
         let saved = UserDefaults.standard.string(forKey: "triggerMethod") ?? TriggerMethod.shiftClick.rawValue
         self.triggerMethod = TriggerMethod(rawValue: saved) ?? .shiftClick
         print("TriggerManager: Initialized with trigger method: \(triggerMethod.displayName)")
+    }
+    
+    func consumeOptionPreTriggerTextForFrontmostApp() -> String {
+        guard let frontmost = NSWorkspace.shared.frontmostApplication else { return "" }
+        let pid = frontmost.processIdentifier
+        guard optionPreTriggerPID == pid else { return "" }
+        let text = optionPreTriggerText.trimmingCharacters(in: .whitespacesAndNewlines)
+        optionPreTriggerText = ""
+        optionPreTriggerPID = 0
+        return text
     }
     
     func setActivationHandler(_ handler: @escaping () -> Void) {
@@ -86,6 +104,8 @@ class TriggerManager: ObservableObject {
         switch triggerMethod {
         case .shiftClick:
             setupShiftClick()
+        case .optionClick:
+            setupOptionClick()
         case .doubleOption:
             setupDoubleOption()
         }
@@ -122,6 +142,50 @@ class TriggerManager: ObservableObject {
         } else {
             monitorActive = true
             print("TriggerManager: ✅ Shift+Click monitor active")
+        }
+    }
+
+    // MARK: - Option+Click
+
+    private func setupOptionClick() {
+        print("TriggerManager: Setting up Option+Click detection")
+        
+        // Capture selection as soon as Option is pressed, before the click can alter selection.
+        keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
+            guard let self = self else { return }
+            let optionPressed = event.modifierFlags.contains(.option)
+            let otherModifiers = event.modifierFlags.intersection([.command, .shift, .control])
+            guard optionPressed && otherModifiers.isEmpty else { return }
+            
+            let snapshot = AccessibilityMonitor.shared.getCurrentSelectedText()
+            self.optionPreTriggerText = snapshot
+            self.optionPreTriggerPID = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+        }
+
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+            guard let self = self else { return }
+
+            let modifiers = event.modifierFlags.intersection([.command, .shift, .option, .control])
+
+            let hasOption = modifiers.contains(.option)
+            let hasCommand = modifiers.contains(.command)
+            let hasShift = modifiers.contains(.shift)
+            let hasControl = modifiers.contains(.control)
+            if hasOption && !hasCommand && !hasShift && !hasControl {
+                print("TriggerManager: ✅✅✅ OPTION+CLICK DETECTED!")
+                self.lastTriggerLocation = NSEvent.mouseLocation
+                DispatchQueue.main.async {
+                    self.activationHandler?()
+                }
+            }
+        }
+
+        if mouseMonitor == nil {
+            monitorActive = false
+            print("TriggerManager: ❌ Failed to create Option+Click monitor")
+        } else {
+            monitorActive = true
+            print("TriggerManager: ✅ Option+Click monitor active")
         }
     }
     

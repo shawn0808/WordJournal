@@ -106,6 +106,20 @@ class AccessibilityMonitor: ObservableObject {
     
     // MARK: - Get text when user triggers lookup
     
+    /// Returns the latest cached selected text for the current frontmost app, if available.
+    /// Useful for click-based triggers (e.g. Option+Click) where the click may clear selection.
+    func getCachedSelectedTextForFrontmostApp() -> String {
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else { return "" }
+        let currentPID = frontmostApp.processIdentifier
+        
+        cacheLock.lock()
+        let cached = cachedSelectedText
+        let cachedPID = cachedFromAppPID
+        cacheLock.unlock()
+        guard cachedPID == currentPID else { return "" }
+        return cached.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     func getCurrentSelectedText() -> String {
         checkAccessibilityPermission(showPrompt: false)
         
@@ -131,26 +145,11 @@ class AccessibilityMonitor: ObservableObject {
         print("AccessibilityMonitor: getCurrentSelectedText() - App: \(appName) (PID: \(currentPID))")
         print("AccessibilityMonitor: Cache: '\(currentCache)' from PID: \(currentCachePID)")
         
-        // #region agent log
-        do {
-            let wouldUseCache = !currentCache.isEmpty && currentCachePID == currentPID && !isNonAX
-            let logLine = "{\"id\":\"log_get_selection\",\"timestamp\":\(Int(Date().timeIntervalSince1970 * 1000)),\"location\":\"AccessibilityMonitor.swift:getCurrentSelectedText\",\"message\":\"cache vs live\",\"data\":{\"app\":\"\(appName)\",\"pid\":\(currentPID),\"cache\":\"\(currentCache)\",\"wouldUseCache\":\(wouldUseCache)},\"hypothesisId\":\"H1\"}\n"
-            if let d = logLine.data(using: .utf8), let fh = FileHandle(forWritingAtPath: "/Users/415350992/Downloads/vibe_coding/WordJournal/.cursor/debug.log") { fh.seekToEndOfFile(); fh.write(d); fh.closeFile() }
-        }
-        // #endregion
-        
         // Always try fresh read first so we don't return stale cache (e.g. "youtube.com"
         // when user just selected a different word in Chrome). Use cache only as fallback.
         
         // 1. Try live Accessibility API read first.
         let liveAXResult = readSelectedTextViaAccessibility(pid: currentPID)
-        // #region agent log
-        do {
-            let liveStr = liveAXResult ?? ""
-            let logLine = "{\"id\":\"log_live_ax\",\"timestamp\":\(Int(Date().timeIntervalSince1970 * 1000)),\"location\":\"AccessibilityMonitor.swift:getCurrentSelectedText\",\"message\":\"live AX result\",\"data\":{\"gotText\":\(liveAXResult != nil),\"text\":\"\(liveStr)\"},\"hypothesisId\":\"H2\"}\n"
-            if let d = logLine.data(using: .utf8), let fh = FileHandle(forWritingAtPath: "/Users/415350992/Downloads/vibe_coding/WordJournal/.cursor/debug.log") { fh.seekToEndOfFile(); fh.write(d); fh.closeFile() }
-        }
-        // #endregion
         if let liveText = liveAXResult {
             let trimmed = liveText.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
