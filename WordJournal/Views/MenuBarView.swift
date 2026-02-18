@@ -99,23 +99,39 @@ struct MenuBarView: View {
                         .padding(.bottom, 4)
                     
                     ForEach(dictionaryService.recentLookups, id: \.self) { word in
-                        HoverButton(action: {
-                            dismiss()
-                            onLookupWord(word)
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary.opacity(0.5))
-                                    .frame(width: 16, alignment: .center)
-                                
-                                Text(word)
-                                    .font(.system(size: 13))
-                                
-                                Spacer()
+                        HStack(spacing: 4) {
+                            HoverButton(action: {
+                                dismiss()
+                                onLookupWord(word)
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary.opacity(0.5))
+                                        .frame(width: 16, alignment: .center)
+                                    
+                                    Text(word)
+                                        .font(.system(size: 13))
+                                    
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 5)
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 5)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Button(action: {
+                                dictionaryService.removeFromRecentLookups(word)
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary.opacity(0.5))
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .pointingHandCursor()
+                            .help("Remove from recent")
+                            .padding(.trailing, 10)
                         }
                     }
                 }
@@ -161,6 +177,7 @@ struct MenuBarView: View {
             }
         ))
         .onAppear {
+            dictionaryService.refreshRecentLookups()
             // Auto-focus the lookup field when the popover opens
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isLookupFocused = true

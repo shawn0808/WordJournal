@@ -15,9 +15,12 @@
 		885C99B6C3534522B4C6D2ED /* DictionaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5FC24D207C4C53BBCD6028 /* DictionaryService.swift */; };
 		896695BCD1244D6F8AF55764 /* AccessibilityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */; };
 		8A3542EBAE7B41E7A463FCE3 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01D6E11C5784C71890C9A2E /* MenuBarView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* NetworkMonitor.swift */; };
+		C3D4E5F60718293A4B5C6D7E /* OfflineBannerCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F60718293A4B5C6D7E8F /* OfflineBannerCoordinator.swift */; };
+		E5F60718293A4B5C6D7E8F90 /* OfflineBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60718293A4B5C6D7E8F9012 /* OfflineBannerView.swift */; };
 		9027BC847EB347E4A79E2116 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD5DA03865341129EA1B8C6 /* JournalView.swift */; };
-		AC42E754193F4EED94288ED2 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76381B53102142D7AA0B8E8D /* HotKeyManager.swift */; };
 		A7F3B2C1D4E58492A1B6C8D0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8E4C2D3E5F69583B2A7C9D1 /* Assets.xcassets */; };
+		AC42E754193F4EED94288ED2 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76381B53102142D7AA0B8E8D /* HotKeyManager.swift */; };
 		BC1F851B5C75430DBC5D2350 /* dictionary.json in Resources */ = {isa = PBXBuildFile; fileRef = 2BD3632E032E41489F61B78C /* dictionary.json */; };
 		D531270D9D5C437DA803F9A0 /* WordJournalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */; };
 		EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1109AD88FEC84218AE0E961D /* DictionaryResult.swift */; };
@@ -25,11 +28,9 @@
 
 /* Begin PBXFileReference section */
 		0BD5DA03865341129EA1B8C6 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
-		B8E4C2D3E5F69583B2A7C9D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMonitor.swift; sourceTree = "<group>"; };
 		1109AD88FEC84218AE0E961D /* DictionaryResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryResult.swift; sourceTree = "<group>"; };
 		22D96B08AF9B4569AF503B82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		C4D2E1A3F5B6789012345678 /* WordJournal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WordJournal.entitlements; sourceTree = "<group>"; };
 		2BD3632E032E41489F61B78C /* dictionary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dictionary.json; sourceTree = "<group>"; };
 		432AB30015D14538984D94CC /* JournalStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStorage.swift; sourceTree = "<group>"; };
 		529DC1575D12445FA137B024 /* DefinitionPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefinitionPopupView.swift; sourceTree = "<group>"; };
@@ -39,8 +40,13 @@
 		8A9B631F69B34B608873B19B /* WordJournal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WordJournal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98F646E3FB334B6F99E85287 /* WordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordEntry.swift; sourceTree = "<group>"; };
 		A16CDA83D74E4E2B9F6F93F3 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
+		B8E4C2D3E5F69583B2A7C9D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C4D2E1A3F5B6789012345678 /* WordJournal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WordJournal.entitlements; sourceTree = "<group>"; };
 		D01D6E11C5784C71890C9A2E /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordJournalApp.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		D4E5F60718293A4B5C6D7E8F /* OfflineBannerCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBannerCoordinator.swift; sourceTree = "<group>"; };
+		F60718293A4B5C6D7E8F9012 /* OfflineBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBannerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +65,8 @@
 			children = (
 				103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */,
 				7D5FC24D207C4C53BBCD6028 /* DictionaryService.swift */,
+				B2C3D4E5F60718293A4B5C6D /* NetworkMonitor.swift */,
+				D4E5F60718293A4B5C6D7E8F /* OfflineBannerCoordinator.swift */,
 				432AB30015D14538984D94CC /* JournalStorage.swift */,
 			);
 			path = Services;
@@ -94,6 +102,7 @@
 				529DC1575D12445FA137B024 /* DefinitionPopupView.swift */,
 				0BD5DA03865341129EA1B8C6 /* JournalView.swift */,
 				D01D6E11C5784C71890C9A2E /* MenuBarView.swift */,
+				F60718293A4B5C6D7E8F9012 /* OfflineBannerView.swift */,
 				A16CDA83D74E4E2B9F6F93F3 /* PreferencesView.swift */,
 			);
 			path = Views;
@@ -208,8 +217,11 @@
 				EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */,
 				896695BCD1244D6F8AF55764 /* AccessibilityMonitor.swift in Sources */,
 				885C99B6C3534522B4C6D2ED /* DictionaryService.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* NetworkMonitor.swift in Sources */,
+				C3D4E5F60718293A4B5C6D7E /* OfflineBannerCoordinator.swift in Sources */,
 				2D056364BC6F49FAAC558F04 /* JournalStorage.swift in Sources */,
 				23FDCA23F58E4DF5B1FAC66D /* DefinitionPopupView.swift in Sources */,
+				E5F60718293A4B5C6D7E8F90 /* OfflineBannerView.swift in Sources */,
 				9027BC847EB347E4A79E2116 /* JournalView.swift in Sources */,
 				8A3542EBAE7B41E7A463FCE3 /* MenuBarView.swift in Sources */,
 				2C02DECC3CB9480B954AB313 /* PreferencesView.swift in Sources */,
@@ -269,6 +281,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -333,6 +346,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;

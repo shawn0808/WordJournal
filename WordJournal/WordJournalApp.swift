@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import Combine
 
 // Subclass NSPanel to allow becoming key window when borderless
 class KeyablePanel: NSPanel {
@@ -33,6 +34,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var popupWindow: NSWindow?
     var popupClickMonitor: Any?
     var lastAnchorRect: CGRect?  // Remembered position for popup updates
+    
+    var offlineBannerWindow: NSWindow?
+    private var bannerCoordinatorCancellable: AnyCancellable?
     
     override init() {
         super.init()
@@ -95,7 +99,80 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Start monitoring accessibility
         AccessibilityMonitor.shared.startMonitoring()
         
+        // Offline banner: observe coordinator and show/hide floating window
+        setupOfflineBanner()
+        
+        // Probe dictionary API reachability after a short delay (catches firewall scenarios)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            NetworkMonitor.shared.checkDictionaryReachability()
+        }
+        
         print("AppDelegate: Setup complete")
+    }
+    
+    private func setupOfflineBanner() {
+        let coordinator = OfflineBannerCoordinator.shared
+        bannerCoordinatorCancellable = coordinator.$isShowing
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isShowing in
+                if isShowing {
+                    self?.showOfflineBannerWindow()
+                } else {
+                    self?.hideOfflineBannerWindow()
+                }
+            }
+    }
+    
+    private func showOfflineBannerWindow() {
+        if offlineBannerWindow == nil {
+            let coordinator = OfflineBannerCoordinator.shared
+            let contentView = OfflineBannerView(
+                message: coordinator.message,
+                onDismiss: { OfflineBannerCoordinator.shared.dismiss() }
+            )
+            let hosting = NSHostingView(rootView: contentView)
+            hosting.frame = NSRect(x: 0, y: 0, width: 420, height: 44)
+            
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 420, height: 44),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            window.contentView = hosting
+            window.backgroundColor = .clear
+            window.isOpaque = false
+            window.level = .statusBar
+            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            window.isReleasedWhenClosed = false
+            offlineBannerWindow = window
+        }
+        
+        guard let window = offlineBannerWindow else { return }
+        
+        // Update message in case it changed
+        let coordinator = OfflineBannerCoordinator.shared
+        let contentView = OfflineBannerView(
+            message: coordinator.message,
+            onDismiss: { OfflineBannerCoordinator.shared.dismiss() }
+        )
+        window.contentView = NSHostingView(rootView: contentView)
+        
+        // Position at top-center of main screen
+        if let screen = NSScreen.main {
+            let screenFrame = screen.visibleFrame
+            let windowWidth: CGFloat = 420
+            let windowHeight: CGFloat = 44
+            let x = screenFrame.midX - windowWidth / 2
+            let y = screenFrame.maxY - windowHeight - 20
+            window.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        window.orderFrontRegardless()
+    }
+    
+    private func hideOfflineBannerWindow() {
+        offlineBannerWindow?.orderOut(nil)
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

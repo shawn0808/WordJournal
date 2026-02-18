@@ -320,12 +320,44 @@ class PronunciationPlayer: NSObject, ObservableObject {
             
             if !played {
                 print("PronunciationPlayer: ❌ All audio sources failed for '\(word)'")
+                // Fallback: show banner if we're effectively offline (e.g. probe detected firewall)
+                if NetworkMonitor.shared.isEffectivelyOffline {
+                    DispatchQueue.main.async {
+                        OfflineBannerCoordinator.shared.show(message: "No internet — pronunciation may not work.")
+                    }
+                }
             }
             
             DispatchQueue.main.async {
                 self.isPlaying = false
             }
         }
+    }
+    
+    /// Play a word synchronously (for Play All). Tries cache first, then downloads.
+    /// Returns true if audio was played successfully.
+    func playWordSync(word: String, audioURL: URL?) -> Bool {
+        // Try cache first
+        let cached = cacheURL(for: word)
+        if FileManager.default.fileExists(atPath: cached.path) {
+            if playFile(at: cached) { return true }
+        }
+        // Try download — same URLs as pronounce()
+        var urlsToTry: [URL] = []
+        if let url = audioURL { urlsToTry.append(url) }
+        let encoded = word.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? word
+        if let googleURL = URL(string: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=\(encoded)") {
+            urlsToTry.append(googleURL)
+        }
+        for url in urlsToTry {
+            if downloadAndPlay(url: url, cacheAs: word) { return true }
+        }
+        if NetworkMonitor.shared.isEffectivelyOffline {
+            DispatchQueue.main.async {
+                OfflineBannerCoordinator.shared.show(message: "No internet — pronunciation may not work.")
+            }
+        }
+        return false
     }
     
     /// Download audio from URL and play with afplay. Returns true if successful.
@@ -354,14 +386,30 @@ class PronunciationPlayer: NSObject, ObservableObject {
     private func downloadAndPlay(url: URL, cacheAs word: String?) -> Bool {
         let semaphore = DispatchSemaphore(value: 0)
         var audioData: Data?
+        var shouldShowBanner = false
         
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("PronunciationPlayer: Download error: \(error.localizedDescription)")
+                if NetworkMonitor.isNetworkError(error) {
+                    shouldShowBanner = true
+                }
             } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 print("PronunciationPlayer: HTTP \(httpResponse.statusCode)")
+                // 403/502/503 often indicate blocked or unavailable service
+                if [403, 502, 503].contains(httpResponse.statusCode) {
+                    shouldShowBanner = true
+                }
             } else {
                 audioData = data
+            }
+            if shouldShowBanner {
+                DispatchQueue.main.async {
+                    OfflineBannerCoordinator.shared.show(message: "No internet — pronunciation may not work.")
+                }
             }
             semaphore.signal()
         }

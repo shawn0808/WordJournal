@@ -26,16 +26,39 @@ class DictionaryService: ObservableObject {
     /// Recently looked up words (most recent first, max 5)
     @Published var recentLookups: [String] = []
     private let maxRecentLookups = 5
+    private let removedFromRecentKey = "recentLookupsRemoved"
+    
+    private var removedFromRecent: Set<String> {
+        get {
+            (UserDefaults.standard.stringArray(forKey: removedFromRecentKey) ?? [])
+                .reduce(into: Set<String>()) { $0.insert($1.lowercased()) }
+        }
+        set {
+            UserDefaults.standard.set(Array(newValue), forKey: removedFromRecentKey)
+        }
+    }
     
     private func addToRecentLookups(_ word: String) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            // Remove if already in list, then prepend
+            var removed = self.removedFromRecent
+            removed.remove(word.lowercased())
+            self.removedFromRecent = removed
             self.recentLookups.removeAll { $0.lowercased() == word.lowercased() }
             self.recentLookups.insert(word, at: 0)
             if self.recentLookups.count > self.maxRecentLookups {
                 self.recentLookups = Array(self.recentLookups.prefix(self.maxRecentLookups))
             }
+        }
+    }
+    
+    func removeFromRecentLookups(_ word: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            var removed = self.removedFromRecent
+            removed.insert(word.lowercased())
+            self.removedFromRecent = removed
+            self.recentLookups.removeAll { $0.lowercased() == word.lowercased() }
         }
     }
     
@@ -78,6 +101,13 @@ class DictionaryService: ObservableObject {
         print("DictionaryService: Loaded \(loaded) entries from persistent cache")
     }
     
+    /// Refreshes recent lookups from cache. Call when menu opens to ensure up to 5 items.
+    func refreshRecentLookups() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.loadRecentLookupsFromCache()
+        }
+    }
+    
     /// Load recent lookups from cache by sorting files by modification date (most recent first)
     private func loadRecentLookupsFromCache() {
         let fm = FileManager.default
@@ -94,7 +124,11 @@ class DictionaryService: ObservableObject {
         }
         
         fileEntries.sort { $0.date > $1.date }
-        let recent = Array(fileEntries.prefix(maxRecentLookups)).map { $0.word }
+        let removed = removedFromRecent
+        let recent: [String] = Array(fileEntries
+            .map { $0.word }
+            .filter { !removed.contains($0.lowercased()) }
+            .prefix(maxRecentLookups))
         
         DispatchQueue.main.async { [weak self] in
             self?.recentLookups = recent
@@ -765,10 +799,15 @@ class DictionaryService: ObservableObject {
         }
         
         var request = URLRequest(url: url)
-        request.timeoutInterval = 5.0
+        request.timeoutInterval = 2.0
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
+                if NetworkMonitor.isNetworkError(error) {
+                    DispatchQueue.main.async {
+                        OfflineBannerCoordinator.shared.show(message: "No internet — dictionary lookups may not work.")
+                    }
+                }
                 completion(.failure(error))
                 return
             }
@@ -853,10 +892,15 @@ class DictionaryService: ObservableObject {
         }
         
         var request = URLRequest(url: url)
-        request.timeoutInterval = 5.0
+        request.timeoutInterval = 2.0
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
+                if NetworkMonitor.isNetworkError(error) {
+                    DispatchQueue.main.async {
+                        OfflineBannerCoordinator.shared.show(message: "No internet — dictionary lookups may not work.")
+                    }
+                }
                 completion(.failure(error))
                 return
             }

@@ -366,11 +366,7 @@ struct JournalView: View {
                 
                 print("PronunciationPlayer: Playing all - [\(index + 1)/\(words.count)] '\(word)'")
                 
-                // Use synchronous download and play
-                let encoded = word.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? word
-                if let url = URL(string: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=\(encoded)") {
-                    _ = audioPlayer.downloadAndPlaySync(url: url)
-                }
+                _ = audioPlayer.playWordSync(word: word, audioURL: nil)
                 
                 // Small pause between words
                 if isPlayingAll && index < words.count - 1 {
