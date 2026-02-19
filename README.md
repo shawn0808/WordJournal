@@ -4,12 +4,7 @@ A native macOS menu bar app for looking up words and phrases instantly from any 
 
 ## Demo
 
-![Product demo](assets/demo.mov)
-
-<!-- Add your demo video as assets/demo.mov, or:
-  - Edit README on GitHub and drag-drop your .mov or .mp4 into the editor (GitHub generates a URL)
-  - Or upload to YouTube and use: [![Watch the video](https://img.youtube.com/vi/VIDEO_ID/hqdefault.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
--->
+[![Watch the demo](https://img.youtube.com/vi/XwvTjdyQWTM/hqdefault.jpg)](https://www.youtube.com/watch?v=XwvTjdyQWTM)
 
 <p align="center">
   <img src="screenshots/definition-popup.png" width="400" alt="Definition popup">
