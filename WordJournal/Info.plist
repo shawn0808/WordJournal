@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.2</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>3</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.education</string>
 	<key>LSMinimumSystemVersion</key>
@@ -28,5 +28,13 @@
 	<string>Word Journal needs accessibility permissions to detect text selections across all applications for dictionary lookups.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026. All rights reserved.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://shawn0808.github.io/WordJournal/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>UwrJUfjiLgnMwliyZ+jr5vT4ta7pLbpvlv26MwG+0HY=</string>
 </dict>
 </plist>

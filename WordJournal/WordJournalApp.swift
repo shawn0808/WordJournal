@@ -8,6 +8,8 @@
 import SwiftUI
 import AppKit
 import Combine
+import Sparkle
+import Sparkle
 
 // Subclass NSPanel to allow becoming key window when borderless
 class KeyablePanel: NSPanel {
@@ -37,6 +39,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     var offlineBannerWindow: NSWindow?
     private var bannerCoordinatorCancellable: AnyCancellable?
+
+    let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     
     override init() {
         super.init()
@@ -105,6 +109,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Probe dictionary API reachability after a short delay (catches firewall scenarios)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NetworkMonitor.shared.checkDictionaryReachability()
+        }
+
+        // Automatic update check on launch (when user hasn't disabled it)
+        // Use isPathSatisfied only — dictionary API probe can fail while GitHub/Sparkle feed is reachable
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self else { return }
+            guard NetworkMonitor.shared.isPathSatisfied else { return }
+            guard self.updaterController.updater.automaticallyChecksForUpdates else { return }
+            self.updaterController.updater.checkForUpdatesInBackground()
         }
         
         print("AppDelegate: Setup complete")
@@ -572,11 +585,11 @@ struct WordJournalApp: App {
     @StateObject private var accessibilityMonitor = AccessibilityMonitor.shared
     @StateObject private var hotKeyManager = HotKeyManager.shared
     @StateObject private var dictionaryService = DictionaryService.shared
-    
+
     init() {
         print("WordJournalApp: App initializing...")
     }
-    
+
     var body: some Scene {
         MenuBarExtra("Word Journal", image: "MenuBarIcon") {
             MenuBarView(
@@ -585,7 +598,6 @@ struct WordJournalApp: App {
                 onLookupWord: { word in appDelegate.lookupWord(word) },
                 journalStorage: journalStorage
             )
-            
         }
         .menuBarExtraStyle(.window)
     }

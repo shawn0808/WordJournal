@@ -38,6 +38,7 @@ A native macOS menu bar app for looking up words and phrases instantly from any 
 - **Export to CSV** — One-click export of your entire journal
 - **Persistent caching** — Previously looked-up words load instantly, even offline
 - **Keyboard shortcuts** — `⌘J` Open Journal, `⌘,` Preferences, `⌘Q` Quit
+- **Auto-updates** — Sparkle checks for updates automatically on launch (when online)
 - **Dark mode support** — All views adapt seamlessly to light and dark mode
 
 ## Requirements
@@ -110,6 +111,8 @@ Alternatively, click the menu bar icon and type a word in the search field.
 ### Preferences
 
 - Click the menu bar icon -> "Preferences" (or `⌘,`)
+- Updates are checked automatically when the app launches (if online)
+
 - Switch between **Shift+Click** and **Double-tap Option** activation
 - View accessibility permission status
 
@@ -189,6 +192,37 @@ WordJournal/
 The app uses a pasteboard fallback for PDF viewers. If lookup shows no text:
 - Ensure the word/phrase is actually selected (highlighted)
 - Wait a moment after selecting before triggering
+
+## Sparkle Auto-Updates
+
+WordJournal uses [Sparkle](https://sparkle-project.org) for automatic updates.
+
+### Before First Release (Developer Setup)
+
+1. **Generate EdDSA keys**  
+   In Xcode: right-click the Sparkle package → Show Package in Finder → navigate to `bin/` and run:
+   ```bash
+   ./generate_keys
+   ```
+   Copy the printed public key.
+
+2. **Update Info.plist**  
+   Replace `REPLACE_WITH_PUBLIC_KEY_FROM_GENERATE_KEYS` in `Info.plist` with your public key.  
+   Update `SUFeedURL` if hosting the appcast somewhere other than `https://shawn0808.github.io/WordJournal/appcast.xml`.
+
+3. **Host appcast**  
+   Use GitHub Pages or any HTTPS host. Place `appcast.xml` at the `SUFeedURL` path. Generate it with:
+   ```bash
+   ./generate_appcast /path/to/updates_folder/
+   ```
+   (from Sparkle’s `bin/` directory)
+
+4. **Release workflow**  
+   - Archive the app (Product → Archive)
+   - Export as a Developer ID–signed app (recommended)
+   - Put the `.dmg` or `.zip` in your updates folder
+   - Run `generate_appcast` to refresh the appcast
+   - Upload the appcast and archives to your host
 
 ## Future Enhancements
 

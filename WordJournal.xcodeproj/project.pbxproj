@@ -24,6 +24,7 @@
 		BC1F851B5C75430DBC5D2350 /* dictionary.json in Resources */ = {isa = PBXBuildFile; fileRef = 2BD3632E032E41489F61B78C /* dictionary.json */; };
 		D531270D9D5C437DA803F9A0 /* WordJournalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */; };
 		EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1109AD88FEC84218AE0E961D /* DictionaryResult.swift */; };
+		SPARKLE001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = SPARKLE002 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +55,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				SPARKLE001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -158,6 +160,9 @@
 			dependencies = (
 			);
 			name = WordJournal;
+			packageProductDependencies = (
+				SPARKLE002 /* Sparkle */,
+			);
 			productName = WordJournal;
 			productReference = 8A9B631F69B34B608873B19B /* WordJournal.app */;
 			productType = "com.apple.product-type.application";
@@ -186,6 +191,9 @@
 				Base,
 			);
 			mainGroup = D306DDC2FBBE48DFABF991EE;
+			packageReferences = (
+				SPARKLE005 /* Sparkle */,
+			);
 			productRefGroup = 7E6FE929BAE54097B612536D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -385,7 +393,7 @@
 				CODE_SIGN_ENTITLEMENTS = WordJournal/WordJournal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -406,7 +414,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wordjournal.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -443,7 +451,7 @@
 				CODE_SIGN_ENTITLEMENTS = WordJournal/WordJournal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -463,7 +471,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wordjournal.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -494,6 +502,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		SPARKLE005 /* Sparkle */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		SPARKLE002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = SPARKLE005 /* Sparkle */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 73B1E2CFEF564DFD85899AA2 /* Project object */;
 }
