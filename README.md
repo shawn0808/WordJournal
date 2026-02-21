@@ -4,7 +4,7 @@ A native macOS menu bar app for looking up words and phrases instantly from any 
 
 ## Video
 
-[![Watch the video](https://img.youtube.com/vi/XwvTjdyQWTM/hqdefault.jpg)](https://www.youtube.com/watch?v=XwvTjdyQWTM)
+https://github.com/user-attachments/assets/2b4eddbf-f680-4d20-a523-cbc826c13686
 
 ## Screenshots
 
