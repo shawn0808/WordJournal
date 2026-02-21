@@ -12,14 +12,14 @@ A native macOS menu bar app for looking up words and phrases instantly from any 
 Instant lookup with pronunciation, multiple meanings, and per-definition add-to-journal.
 
 <p align="center">
-  <img src="screenshots/definition-popup-zoomed.png" width="900" alt="Definition popup — instant lookup with pronunciation and add-to-journal buttons">
+  <img src="screenshots/definition-popup.png" width="900" alt="Definition popup — instant lookup with pronunciation and add-to-journal buttons">
 </p>
 
 ### Journal
 Editable table with search, sortable columns, pronunciation, and export.
 
 <p align="center">
-  <img src="screenshots/journal-zoomed.png" width="900" alt="Journal view — editable word list with definitions">
+  <img src="screenshots/journal.png" width="900" alt="Journal view — editable word list with definitions">
 </p>
 
 ### Menu bar — Type a word or pick from recent lookups
