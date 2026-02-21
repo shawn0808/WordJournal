@@ -3,6 +3,17 @@
     <channel>
         <title>WordJournal</title>
         <item>
+            <title>1.2</title>
+            <pubDate>Sat, 21 Feb 2026 17:06:27 +0800</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://shawn0808.github.io/WordJournal/WordJournal-1.2.dmg" length="2341717" type="application/octet-stream" sparkle:edSignature="uBBHr4B9zBK6/tYlpDzVueehrGqASThBtmuIjKHX963w4tEml43sp9C50iEh0m4TjJL2vN0cpTFqj5t4GT1hDQ=="/>
+            <sparkle:deltas>
+                <enclosure url="https://shawn0808.github.io/WordJournal/WordJournal3-2.delta" sparkle:deltaFrom="2" length="44086" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="862864" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ZFZYYBzKFF9pncAh4jQftocrrXXi5iPhcWEZhH4EmTPiW1VImBztarj2NJM6uhgQlWf78g8eT9PdElchkGrSAg=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>1.1</title>
             <pubDate>Sat, 21 Feb 2026 15:23:02 +0800</pubDate>
             <sparkle:version>2</sparkle:version>
