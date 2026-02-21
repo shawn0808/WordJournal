@@ -2,9 +2,9 @@
 
 A native macOS menu bar app for looking up words and phrases instantly from any application. Select text, trigger a lookup, and build your personal vocabulary journal — all without leaving your current window.
 
-## Demo
+## Video
 
-[![Watch the demo](https://img.youtube.com/vi/XwvTjdyQWTM/hqdefault.jpg)](https://www.youtube.com/watch?v=XwvTjdyQWTM)
+[![Watch the video](https://img.youtube.com/vi/XwvTjdyQWTM/hqdefault.jpg)](https://www.youtube.com/watch?v=XwvTjdyQWTM)
 
 ## Screenshots
 
