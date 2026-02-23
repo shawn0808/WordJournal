@@ -2,6 +2,10 @@
 
 A native macOS menu bar app for looking up words and phrases instantly from any application. Select text, trigger a lookup, and build your personal vocabulary journal — all without leaving your current window.
 
+## Download
+
+**[Download Word Journal for macOS](https://github.com/shawn0808/WordJournal/releases/latest)** — DMG installer for macOS 13+
+
 ## Video
 
 https://github.com/user-attachments/assets/2b4eddbf-f680-4d20-a523-cbc826c13686
