@@ -29,7 +29,7 @@ Editable table with search, sortable columns, pronunciation, and export.
 
 ### Add to journal — One-click per definition
 <p align="center">
-  <img src="screenshots/add-to-journal-zoomed.png" width="700" alt="Add to journal buttons">
+  <img src="screenshots/welcome-step4.gif" width="700" alt="Add to journal buttons">
 </p>
 
 ### Preferences — Trigger method and accessibility status
