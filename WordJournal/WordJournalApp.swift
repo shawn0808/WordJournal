@@ -8,7 +8,7 @@
 import SwiftUI
 import AppKit
 import Combine
-import Sparkle
+import MenuBarExtraAccess
 import Sparkle
 
 // Subclass NSPanel to allow becoming key window when borderless
@@ -38,6 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var lastAnchorRect: CGRect?  // Remembered position for popup updates
     
     var offlineBannerWindow: NSWindow?
+    var welcomeWindow: NSWindow?
     private var bannerCoordinatorCancellable: AnyCancellable?
 
     let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -63,35 +64,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("AppDelegate: applicationDidFinishLaunching - setting up services")
         
-        // Check accessibility permissions
-        if !AccessibilityMonitor.shared.hasAccessibilityPermission {
-            print("⚠️ Accessibility permissions not granted")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                let alert = NSAlert()
-                alert.messageText = "Accessibility Permission Required"
-                alert.informativeText = """
-                WordJournal needs accessibility permissions to:
-                • Detect text selections
-                • Listen for global keyboard shortcuts
-                
-                Please enable it in:
-                System Settings → Privacy & Security → Accessibility
-                
-                Then restart the app.
-                """
-                alert.alertStyle = .warning
-                alert.addButton(withTitle: "Open System Settings")
-                alert.addButton(withTitle: "Remind Me Later")
-                
-                let response = alert.runModal()
-                if response == .alertFirstButtonReturn {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
+        // First-run welcome flow or accessibility prompt
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            if !WelcomeFlowStorage.hasCompletedWelcome {
+                self?.showWelcomeFlow()
+            } else if !AccessibilityMonitor.shared.hasAccessibilityPermission {
+                self?.showAccessibilityAlert()
+            } else {
+                print("✅ Accessibility permissions granted")
             }
-        } else {
-            print("✅ Accessibility permissions granted")
         }
         
         // Set up trigger handler
@@ -121,6 +102,72 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         print("AppDelegate: Setup complete")
+    }
+    
+    private func showAccessibilityAlert() {
+        print("⚠️ Accessibility permissions not granted")
+        let alert = NSAlert()
+        alert.messageText = "Accessibility Permission Required"
+        alert.informativeText = """
+        WordJournal needs accessibility permissions to:
+        • Detect text selections
+        • Listen for global keyboard shortcuts
+
+        Please enable it in:
+        System Settings → Privacy & Security → Accessibility
+
+        Then restart the app.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Remind Me Later")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+    
+    func showWelcomeFlow() {
+        if let window = welcomeWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        let appDelegate = self
+        let contentView = WelcomeFlowView(
+            onComplete: {
+                appDelegate.welcomeWindow?.close()
+                appDelegate.welcomeWindow = nil
+            },
+            onOpenJournal: {
+                appDelegate.welcomeWindow?.close()
+                appDelegate.welcomeWindow = nil
+                MenuBarPopoverCoordinator.shared.open()
+            }
+        )
+        .environmentObject(TriggerManager.shared)
+        
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 420, height: 440)
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 440),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Welcome to Word Journal"
+        window.contentView = hostingView
+        window.center()
+        window.isReleasedWhenClosed = false
+        welcomeWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
     }
     
     private func setupOfflineBanner() {
@@ -585,6 +632,7 @@ struct WordJournalApp: App {
     @StateObject private var accessibilityMonitor = AccessibilityMonitor.shared
     @StateObject private var hotKeyManager = HotKeyManager.shared
     @StateObject private var dictionaryService = DictionaryService.shared
+    @StateObject private var menuBarCoordinator = MenuBarPopoverCoordinator.shared
 
     init() {
         print("WordJournalApp: App initializing...")
@@ -600,5 +648,9 @@ struct WordJournalApp: App {
             )
         }
         .menuBarExtraStyle(.window)
+        .menuBarExtraAccess(isPresented: Binding(
+            get: { menuBarCoordinator.isMenuBarPresented },
+            set: { menuBarCoordinator.isMenuBarPresented = $0 }
+        ))
     }
 }

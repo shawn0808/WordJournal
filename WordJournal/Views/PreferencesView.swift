@@ -126,7 +126,7 @@ struct PreferencesView: View {
             }
             
             // About Tab
-            VStack(spacing: 16) {
+            VStack(spacing: 20) {
                 Image(systemName: "book.closed")
                     .font(.system(size: 56, weight: .thin))
                     .foregroundColor(accentBlue)
@@ -134,7 +134,7 @@ struct PreferencesView: View {
                 Text("Word Journal")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                 
-                Text("Version 1.0")
+                Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 
@@ -143,6 +143,20 @@ struct PreferencesView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .lineSpacing(3)
+                
+                Button("Show Welcome Again") {
+                    WelcomeFlowStorage.hasCompletedWelcome = false
+                    guard let appDelegate = AppDelegate.shared else { return }
+                    appDelegate.preferencesWindow?.close()
+                    appDelegate.preferencesWindow = nil
+                    // Defer so the preferences window closes before showing welcome
+                    DispatchQueue.main.async {
+                        appDelegate.showWelcomeFlow()
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(accentBlue)
+                .padding(.top, 8)
             }
             .padding(20)
             .tabItem {
