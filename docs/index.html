@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Journal — Look up words instantly, build your vocabulary</title>
+  <meta name="description" content="A native macOS menu bar app for looking up words and phrases instantly from any application. Select text, trigger a lookup, and build your personal vocabulary journal.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --text: #1c1917;
+      --text-muted: #57534e;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --card: #ffffff;
+      --border: #e7e5e4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    
+    /* Hero */
+    header {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+    .logo {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 2.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .tagline {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 14px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background 0.2s;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    .download-btn:hover {
+      background: var(--accent-hover);
+    }
+    .download-btn svg { width: 20px; height: 20px; }
+    .version { font-size: 0.85rem; color: var(--text-muted); margin-top: 12px; }
+    
+    /* Demo */
+    .demo {
+      margin: 48px 0 72px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+    }
+    .demo img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    /* Features */
+    section {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+    }
+    h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .feature {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .feature h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .feature p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    
+    /* Screenshots */
+    .screenshots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+    .screenshot {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .screenshot img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .screenshot figcaption {
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    /* Footer */
+    footer {
+      padding: 48px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { margin-top: 16px; }
+    .footer-links a { margin: 0 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1 class="logo">Word Journal</h1>
+      <p class="tagline">Look up words instantly from any app. Select text, Shift+Click, and build your personal vocabulary journal — without leaving your window.</p>
+      <a href="https://github.com/shawn0808/WordJournal/releases/download/v1.3/WordJournal-1.3.dmg" class="download-btn" download>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        Download for Mac (v1.3)
+      </a>
+      <p class="version">macOS 13+ · Free</p>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="demo">
+      <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png" alt="Word Journal definition popup">
+    </div>
+  </div>
+  
+  <section>
+    <div class="container">
+      <h2>Why Word Journal?</h2>
+      <div class="features">
+        <div class="feature">
+          <h3>Works everywhere</h3>
+          <p>Select text in Safari, PDFs, Notes, Slack — any app. Shift+Click or double-tap Option to see the definition instantly.</p>
+        </div>
+        <div class="feature">
+          <h3>Stay in flow</h3>
+          <p>No switching apps or opening tabs. A floating popup appears right next to the word. One click to add definitions to your journal.</p>
+        </div>
+        <div class="feature">
+          <h3>Build your vocabulary</h3>
+          <p>Save definitions as you read. Search, sort, hear pronunciation, and export to CSV for flashcards or study tools.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <section>
+    <div class="container">
+      <h2>See it in action</h2>
+      <div class="screenshots">
+        <figure class="screenshot">
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png" alt="Definition popup with pronunciation">
+          <figcaption>Definition popup with pronunciation & add-to-journal</figcaption>
+        </figure>
+        <figure class="screenshot">
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/journal-zoomed.png" alt="Editable journal">
+          <figcaption>Editable journal with search & sort</figcaption>
+        </figure>
+        <figure class="screenshot">
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/menu-bar-zoomed.png" alt="Menu bar lookup">
+          <figcaption>Menu bar — type a word or pick from recent</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+  
+  <section>
+    <div class="container">
+      <h2>Get started</h2>
+      <p style="text-align: center; max-width: 500px; margin: 0 auto 24px; color: var(--text-muted);">
+        Download the app, grant accessibility permission when prompted, then select any word and Shift+Click (or double-tap Option) to look it up.
+      </p>
+      <p style="text-align: center;">
+        <a href="https://github.com/shawn0808/WordJournal/releases/download/v1.3/WordJournal-1.3.dmg" class="download-btn" download>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Download Word Journal
+        </a>
+      </p>
+    </div>
+  </section>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://github.com/shawn0808/WordJournal">GitHub</a>
+        <a href="https://github.com/shawn0808/WordJournal/releases">Releases</a>
+        <a href="https://github.com/shawn0808/WordJournal/blob/main/README.md">Documentation</a>
+      </div>
+      <p style="margin-top: 24px; font-size: 0.9rem; color: var(--text-muted);">© 2026 Word Journal</p>
+    </div>
+  </footer>
+</body>
+</html>
