@@ -24,6 +24,11 @@ DerivedData
 Packages/
 Package.pins
 Package.resolved
+# Xcode Cloud requires Package.resolved for reproducible builds
+!WordJournal.xcodeproj/project.xcworkspace/
+!WordJournal.xcodeproj/project.xcworkspace/xcshareddata/
+!WordJournal.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+!WordJournal.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # CocoaPods
 Pods/
