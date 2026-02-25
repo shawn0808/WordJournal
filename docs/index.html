@@ -7,10 +7,12 @@
   <meta name="description" content="A native macOS menu bar app for looking up words and phrases instantly from any application. Select text, trigger a lookup, and build your personal vocabulary journal.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <style>
     :root {
+      /* Word Journal: warm paper, ink, journal palette */
       --bg: #faf9f6;
+      --bg-alt: #f5f3ef;
       --text: #1c1917;
       --text-muted: #57534e;
       --accent: #2563eb;
@@ -26,25 +28,79 @@
       color: var(--text);
       line-height: 1.6;
     }
-    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-    
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 24px;
+      background: rgba(250, 249, 246, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    nav.scrolled { border-color: var(--border); box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+    nav .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .nav-links a {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: white !important;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .nav-download:hover { background: var(--accent-hover); }
+
     /* Hero */
-    header {
-      padding: 80px 0 60px;
+    .hero {
+      padding: 140px 0 80px;
       text-align: center;
     }
-    .logo {
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: 2.5rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 16px;
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 3.75rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 20px;
     }
-    .tagline {
-      font-size: 1.2rem;
+    .hero .tagline {
+      font-size: 1.25rem;
       color: var(--text-muted);
-      max-width: 520px;
-      margin: 0 auto 32px;
+      max-width: 540px;
+      margin: 0 auto 36px;
+      line-height: 1.5;
     }
     .download-btn {
       display: inline-flex;
@@ -60,70 +116,111 @@
       transition: background 0.2s;
       box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
     }
-    .download-btn:hover {
-      background: var(--accent-hover);
+    .download-btn:hover { background: var(--accent-hover); }
+    .download-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .hero-meta {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 16px;
     }
-    .download-btn svg { width: 20px; height: 20px; }
-    .version { font-size: 0.85rem; color: var(--text-muted); margin-top: 12px; }
-    
-    /* Demo */
-    .demo {
-      margin: 48px 0 72px;
+
+    /* Product showcase - full-width like Raycast */
+    .showcase {
+      margin-bottom: 120px;
+    }
+    .showcase-inner {
+      max-width: 1000px;
+      margin: 0 auto;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+      box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
     }
-    .demo img {
+    .showcase img {
       width: 100%;
       height: auto;
       display: block;
     }
-    
-    /* Features */
-    section {
-      padding: 48px 0;
-      border-top: 1px solid var(--border);
+
+    /* Philosophy block - Raycast-style two-line headline */
+    .philosophy {
+      padding: 100px 0;
+      text-align: center;
+      background: var(--bg-alt);
     }
-    h2 {
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: 1.75rem;
+    .philosophy h2 {
+      font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      max-width: 600px;
+      margin: 0 auto 12px;
+    }
+    .philosophy .sub {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+    }
+
+    /* Features grid */
+    .features-section {
+      padding: 100px 0;
+    }
+    .features-section h2 {
+      font-size: 1.5rem;
       font-weight: 600;
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 48px;
     }
     .features {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    @media (max-width: 768px) {
+      .features { grid-template-columns: 1fr; }
     }
     .feature {
       background: var(--card);
-      padding: 24px;
+      padding: 32px;
       border-radius: 12px;
       border: 1px solid var(--border);
     }
     .feature h3 {
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .feature p {
       font-size: 0.95rem;
       color: var(--text-muted);
+      line-height: 1.55;
     }
-    
-    /* Screenshots */
+
+    /* Screenshots grid */
+    .screenshots-section {
+      padding: 100px 0;
+      background: var(--bg-alt);
+    }
+    .screenshots-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 48px;
+    }
     .screenshots {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 24px;
-      margin-top: 32px;
+    }
+    @media (max-width: 768px) {
+      .screenshots { grid-template-columns: 1fr; }
     }
     .screenshot {
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--border);
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      background: var(--card);
     }
     .screenshot img {
       width: 100%;
@@ -131,49 +228,112 @@
       display: block;
     }
     .screenshot figcaption {
-      padding: 12px 16px;
+      padding: 16px;
       font-size: 0.9rem;
       color: var(--text-muted);
     }
-    
-    /* Footer */
-    footer {
-      padding: 48px 0;
+
+    /* Final CTA - Raycast "Take the short way" style */
+    .cta-section {
+      padding: 100px 0;
       text-align: center;
+    }
+    .cta-section h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .cta-section p {
+      color: var(--text-muted);
+      max-width: 480px;
+      margin: 0 auto 32px;
+    }
+    .cta-section .download-btn { font-size: 1.05rem; padding: 16px 32px; }
+
+    /* Footer - multi-column like Raycast */
+    footer {
+      padding: 64px 0 48px;
       border-top: 1px solid var(--border);
+      background: var(--bg);
     }
-    footer a {
-      color: var(--accent);
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+    .footer-col h4 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .footer-col a {
+      display: block;
+      font-size: 0.95rem;
+      color: var(--text);
       text-decoration: none;
-      font-weight: 500;
+      margin-bottom: 10px;
     }
-    footer a:hover { text-decoration: underline; }
-    .footer-links { margin-top: 16px; }
-    .footer-links a { margin: 0 12px; }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom {
+      text-align: center;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
   </style>
 </head>
 <body>
-  <header>
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">Word Journal</a>
+      <div class="nav-links">
+        <a href="https://github.com/shawn0808/WordJournal">GitHub</a>
+        <a href="https://github.com/shawn0808/WordJournal/releases">Releases</a>
+        <a href="https://github.com/shawn0808/WordJournal/releases/download/v1.3/WordJournal-1.3.dmg" class="nav-download" download>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Download
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
     <div class="container">
-      <h1 class="logo">Word Journal</h1>
+      <h1>Your shortcut to every word.</h1>
       <p class="tagline">Look up words instantly from any app. Select text, Shift+Click, and build your personal vocabulary journal — without leaving your window.</p>
       <a href="https://github.com/shawn0808/WordJournal/releases/download/v1.3/WordJournal-1.3.dmg" class="download-btn" download>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-        Download for Mac (v1.3)
+        Download for Mac
       </a>
-      <p class="version">macOS 13+ · Free</p>
+      <p class="hero-meta">v1.3 · macOS 13+ · Free</p>
     </div>
-  </header>
-  
-  <div class="container">
-    <div class="demo">
-      <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png" alt="Word Journal definition popup">
-    </div>
-  </div>
-  
-  <section>
+  </section>
+
+  <section class="showcase">
     <div class="container">
-      <h2>Why Word Journal?</h2>
+      <div class="showcase-inner">
+        <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png" alt="Word Journal definition popup">
+      </div>
+    </div>
+  </section>
+
+  <section class="philosophy">
+    <div class="container">
+      <h2>It's not about memorizing.</h2>
+      <p class="sub">It's about never forgetting.</p>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <div class="container">
+      <h2>Three ways it helps.</h2>
       <div class="features">
         <div class="feature">
           <h3>Works everywhere</h3>
@@ -190,10 +350,10 @@
       </div>
     </div>
   </section>
-  
-  <section>
+
+  <section class="screenshots-section">
     <div class="container">
-      <h2>See it in action</h2>
+      <h2>See it in action.</h2>
       <div class="screenshots">
         <figure class="screenshot">
           <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png" alt="Definition popup with pronunciation">
@@ -210,31 +370,47 @@
       </div>
     </div>
   </section>
-  
-  <section>
+
+  <section class="cta-section">
     <div class="container">
-      <h2>Get started</h2>
-      <p style="text-align: center; max-width: 500px; margin: 0 auto 24px; color: var(--text-muted);">
-        Download the app, grant accessibility permission when prompted, then select any word and Shift+Click (or double-tap Option) to look it up.
-      </p>
-      <p style="text-align: center;">
-        <a href="https://github.com/shawn0808/WordJournal/releases/download/v1.3/WordJournal-1.3.dmg" class="download-btn" download>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Download Word Journal
-        </a>
-      </p>
+      <h2>Start building your vocabulary.</h2>
+      <p>Download the app, grant accessibility permission when prompted, then select any word and Shift+Click to look it up.</p>
+      <a href="https://github.com/shawn0808/WordJournal/releases/download/v1.3/WordJournal-1.3.dmg" class="download-btn" download>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        Download Word Journal
+      </a>
     </div>
   </section>
-  
+
   <footer>
     <div class="container">
-      <div class="footer-links">
-        <a href="https://github.com/shawn0808/WordJournal">GitHub</a>
-        <a href="https://github.com/shawn0808/WordJournal/releases">Releases</a>
-        <a href="https://github.com/shawn0808/WordJournal/blob/main/README.md">Documentation</a>
+      <div class="footer-inner">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="https://github.com/shawn0808/WordJournal/releases">Releases</a>
+          <a href="https://github.com/shawn0808/WordJournal/blob/main/README.md">Documentation</a>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <a href="https://github.com/shawn0808/WordJournal">GitHub</a>
+        </div>
       </div>
-      <p style="margin-top: 24px; font-size: 0.9rem; color: var(--text-muted);">© 2026 Word Journal</p>
+      <div class="footer-bottom">© 2026 Word Journal</div>
     </div>
   </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const nav = document.querySelector('nav');
+      const hero = document.querySelector('.hero');
+      if (nav && hero) {
+        const observer = new IntersectionObserver(
+          ([e]) => nav.classList.toggle('scrolled', !e.isIntersecting),
+          { threshold: 0.1 }
+        );
+        observer.observe(hero);
+      }
+    });
+  </script>
 </body>
 </html>
