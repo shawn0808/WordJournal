@@ -135,11 +135,13 @@
       overflow: hidden;
       box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
     }
-    .showcase img {
+    .showcase img,
+    .showcase video {
       width: 100%;
       height: auto;
       display: block;
     }
+    .showcase-video { border-radius: 16px; overflow: hidden; }
 
     /* Philosophy block - Raycast-style two-line headline */
     .philosophy {
@@ -194,6 +196,18 @@
       font-size: 0.95rem;
       color: var(--text-muted);
       line-height: 1.55;
+    }
+    .feature-gif {
+      margin-top: 16px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .feature-gif img {
+      width: 100%;
+      max-width: 320px;
+      height: auto;
+      display: block;
     }
 
     /* Screenshots grid */
@@ -318,8 +332,10 @@
 
   <section class="showcase">
     <div class="container">
-      <div class="showcase-inner">
-        <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png" alt="Word Journal definition popup">
+      <div class="showcase-inner showcase-video">
+        <video autoplay muted loop playsinline poster="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png">
+          <source src="demo.mp4" type="video/mp4">
+        </video>
       </div>
     </div>
   </section>
@@ -342,6 +358,9 @@
         <div class="feature">
           <h3>Stay in flow</h3>
           <p>No switching apps or opening tabs. A floating popup appears right next to the word. One click to add definitions to your journal.</p>
+          <div class="feature-gif">
+            <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/welcome-step4.gif" alt="One-click add to journal" width="320">
+          </div>
         </div>
         <div class="feature">
           <h3>Build your vocabulary</h3>
