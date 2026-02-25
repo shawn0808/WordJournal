@@ -38,6 +38,22 @@ class AccessibilityMonitor: ObservableObject {
     }
     
     func requestPermission() {
+        // Open System Settings to Accessibility
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+        // When running from Xcode, the AX prompt doesn't appear and the app isn't added to the list.
+        // Help the user by revealing the app in Finder and copying its path so they can add it via +.
+        let appPath = Bundle.main.bundleURL.path
+        if appPath.contains("DerivedData") {
+            NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(appPath, forType: .string)
+            // Brief instructions via a notification-style alert
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.showAddToAccessibilityInstructions()
+            }
+        }
         checkAccessibilityPermission(showPrompt: true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.checkAccessibilityPermission(showPrompt: false)
@@ -45,6 +61,15 @@ class AccessibilityMonitor: ObservableObject {
                 self.startMonitoring()
             }
         }
+    }
+    
+    private func showAddToAccessibilityInstructions() {
+        let alert = NSAlert()
+        alert.messageText = "Add Word Journal to Accessibility"
+        alert.informativeText = "When running from Xcode, add the app manually:\n\n1. Click the + button in the Accessibility list\n2. Press Cmd+Shift+G in the file picker\n3. Paste (Cmd+V) — the path was copied to your clipboard\n4. Select WordJournal.app and click Open\n\nFinder is showing the app location."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
     
     func startMonitoring() {
