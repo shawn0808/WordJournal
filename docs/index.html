@@ -8,6 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <!-- Google Analytics 4: set your Measurement ID (G-XXXXXXXXXX) from analytics.google.com -->
+  <script>
+    window.GA_ID = 'G-9TWM3BLSR3';
+  </script>
   <style>
     :root {
       /* Word Journal: warm paper, ink, journal palette */
@@ -326,7 +330,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
         Download for Mac
       </a>
-      <p class="hero-meta">v1.3 · macOS 13+ · Free</p>
+      <p class="hero-meta">v1.3 · macOS 13+ · Free <span id="download-count-text"></span></p>
     </div>
   </section>
 
@@ -420,6 +424,7 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Nav scroll state
       const nav = document.querySelector('nav');
       const hero = document.querySelector('.hero');
       if (nav && hero) {
@@ -429,6 +434,41 @@
         );
         observer.observe(hero);
       }
+
+      // Google Analytics 4 — page views + download click events
+      if (window.GA_ID && window.GA_ID.startsWith('G-')) {
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.GA_ID;
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', window.GA_ID);
+      }
+      document.querySelectorAll('.download-btn, .nav-download').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          if (window.gtag) gtag('event', 'download_click', { event_category: 'engagement' });
+        });
+      });
+
+      // GitHub download count (no setup required)
+      fetch('https://api.github.com/repos/shawn0808/WordJournal/releases')
+        .then(function(r) { return r.json(); })
+        .then(function(releases) {
+          var total = 0;
+          (releases || []).forEach(function(r) {
+            (r.assets || []).forEach(function(a) {
+              if (a.name && a.name.endsWith('.dmg')) total += a.download_count || 0;
+            });
+          });
+          if (total > 0) {
+            var el = document.getElementById('download-count-text');
+            if (el) el.textContent = ' · ' + (total >= 1000 ? (total/1000).toFixed(1) + 'k' : total) + ' downloads';
+          }
+        })
+        .catch(function() {});
     });
   </script>
 </body>
