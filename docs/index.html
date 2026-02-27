@@ -256,16 +256,21 @@
       border: 1px solid var(--border);
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       background: var(--card);
+      display: flex;
+      flex-direction: column;
+    }
+    .screenshot figcaption {
+      padding: 16px 16px 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      order: 1;
     }
     .screenshot img {
       width: 100%;
       height: auto;
       display: block;
-    }
-    .screenshot figcaption {
-      padding: 16px;
-      font-size: 0.9rem;
-      color: var(--text-muted);
+      order: 2;
     }
 
     /* Final CTA - Raycast "Take the short way" style */
@@ -410,16 +415,16 @@
       <h2>See it in action.</h2>
       <div class="screenshots">
         <figure class="screenshot">
-          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup.png" alt="Definition popup with pronunciation">
           <figcaption>Definition popup with pronunciation & add-to-journal</figcaption>
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup.png" alt="Definition popup with pronunciation">
         </figure>
         <figure class="screenshot">
-          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/journal.png" alt="Editable journal">
           <figcaption>Editable journal with search & sort</figcaption>
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/journal.png" alt="Editable journal">
         </figure>
         <figure class="screenshot">
-          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/menu-bar.png" alt="Menu bar lookup">
           <figcaption>Menu bar — type a word or pick from recent</figcaption>
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/menu-bar.png" alt="Menu bar lookup">
         </figure>
       </div>
     </div>
