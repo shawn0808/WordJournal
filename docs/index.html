@@ -366,7 +366,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
         Download for Mac
       </a>
-      <p class="hero-meta">v1.4 · macOS 13+ · Free <span id="download-count-text"></span></p>
+      <p class="hero-meta">v1.4 · macOS 13+ · Free</p>
     </div>
   </section>
 
@@ -491,22 +491,6 @@
         });
       });
 
-      // GitHub download count (no setup required)
-      fetch('https://api.github.com/repos/shawn0808/WordJournal/releases')
-        .then(function(r) { return r.json(); })
-        .then(function(releases) {
-          var total = 0;
-          (releases || []).forEach(function(r) {
-            (r.assets || []).forEach(function(a) {
-              if (a.name && a.name.endsWith('.dmg')) total += a.download_count || 0;
-            });
-          });
-          if (total > 0) {
-            var el = document.getElementById('download-count-text');
-            if (el) el.textContent = ' · ' + (total >= 1000 ? (total/1000).toFixed(1) + 'k' : total) + ' downloads';
-          }
-        })
-        .catch(function() {});
     });
   </script>
 </body>
