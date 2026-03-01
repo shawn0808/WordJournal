@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
-VERSION="${VERSION:-1.4}"
+VERSION="${VERSION:-1.5}"
 OUTPUT_DMG="$PROJECT_DIR/docs/WordJournal-${VERSION}.dmg"
 BACKGROUND="$SCRIPT_DIR/dmg-background.png"
 
@@ -50,9 +50,10 @@ fi
 
 echo "=== Building WordJournal (Release) ==="
 cd "$PROJECT_DIR"
+# Clean first so DMG uses current source (no stale artifacts)
 xcodebuild -scheme WordJournal -configuration Release \
     -derivedDataPath "$BUILD_DIR" \
-    build 2>&1 | tail -20
+    clean build 2>&1 | tail -30
 
 APP_PATH="$BUILD_DIR/Build/Products/Release/WordJournal.app"
 if [ ! -d "$APP_PATH" ]; then
