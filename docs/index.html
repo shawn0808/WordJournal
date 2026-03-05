@@ -162,7 +162,24 @@
       height: auto;
       display: block;
     }
-    .showcase-video { border-radius: 16px; overflow: hidden; }
+    .showcase-video { border-radius: 16px; overflow: hidden; position: relative; }
+    .showcase-video .sound-toggle {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: background 0.2s;
+    }
+    .showcase-video .sound-toggle:hover { background: rgba(0,0,0,0.7); }
 
     /* Philosophy block - Raycast-style two-line headline */
     .philosophy {
@@ -373,9 +390,13 @@
   <section class="showcase">
     <div class="container">
       <div class="showcase-inner showcase-video">
-        <video autoplay muted loop playsinline poster="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png">
+        <video id="demo-video" autoplay muted loop playsinline poster="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png">
           <source src="demo.mp4" type="video/mp4">
         </video>
+        <button type="button" class="sound-toggle" id="sound-toggle" title="Toggle sound" aria-label="Toggle sound">
+          <svg id="sound-icon-muted" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          <svg id="sound-icon-unmuted" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
       </div>
     </div>
   </section>
@@ -491,6 +512,18 @@
         });
       });
 
+      // Sound toggle for demo video
+      const video = document.getElementById('demo-video');
+      const toggle = document.getElementById('sound-toggle');
+      const iconMuted = document.getElementById('sound-icon-muted');
+      const iconUnmuted = document.getElementById('sound-icon-unmuted');
+      if (video && toggle) {
+        toggle.addEventListener('click', function() {
+          video.muted = !video.muted;
+          iconMuted.style.display = video.muted ? '' : 'none';
+          iconUnmuted.style.display = video.muted ? 'none' : '';
+        });
+      }
     });
   </script>
 </body>
