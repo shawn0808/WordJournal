@@ -193,11 +193,30 @@
     }
     .features {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 32px;
     }
     @media (max-width: 768px) {
       .features { grid-template-columns: 1fr; }
+    }
+    .feature-combined {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .feature-combined .feature-block {
+      flex: 1;
+    }
+    .feature-combined .feature-block h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .feature-combined .feature-block p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin: 0;
     }
     .feature {
       background: var(--card);
@@ -383,15 +402,17 @@
 
   <section class="features-section">
     <div class="container">
-      <h2>Three ways it helps.</h2>
+      <h2>How it helps.</h2>
       <div class="features">
-        <div class="feature">
-          <h3>Works everywhere</h3>
-          <p>Select text in Safari, PDFs, Notes, Slack — any app. Shift+Click or double-tap Option to see the definition instantly.</p>
-        </div>
-        <div class="feature">
-          <h3>Stay in flow</h3>
-          <p>No switching apps or opening tabs. A floating popup appears right next to the word. One click to add definitions to your journal.</p>
+        <div class="feature feature-combined">
+          <div class="feature-block">
+            <h3>Works everywhere</h3>
+            <p>Select text in Safari, PDFs, Notes, Slack — any app. Shift+Click or double-tap Option to see the definition instantly.</p>
+          </div>
+          <div class="feature-block">
+            <h3>Stay in flow</h3>
+            <p>No switching apps or opening tabs. A floating popup appears right next to the word. One click to add definitions to your journal.</p>
+          </div>
           <div class="feature-gif">
             <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/welcome-step4.gif" alt="One-click add to journal" width="320">
           </div>
