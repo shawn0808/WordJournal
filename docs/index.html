@@ -181,7 +181,7 @@
     }
     .showcase-video .sound-toggle:hover { background: rgba(0,0,0,0.7); }
 
-    /* Features grid */
+    /* Features - same scale as video showcase */
     .features-section {
       padding: 100px 0;
     }
@@ -192,57 +192,55 @@
       margin-bottom: 48px;
     }
     .features {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 32px;
     }
-    @media (max-width: 768px) {
-      .features { grid-template-columns: 1fr; }
+    .feature {
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+      background: var(--card);
+      padding: 48px 56px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 30px 60px -12px rgba(0,0,0,0.08);
     }
     .feature-combined {
       display: flex;
       flex-direction: column;
-      gap: 24px;
-    }
-    .feature-combined .feature-block {
-      flex: 1;
+      gap: 32px;
     }
     .feature-combined .feature-block h3 {
-      font-size: 1.05rem;
+      font-size: 1.25rem;
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .feature-combined .feature-block p {
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       color: var(--text-muted);
-      line-height: 1.55;
+      line-height: 1.6;
       margin: 0;
     }
-    .feature {
-      background: var(--card);
-      padding: 32px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
     .feature h3 {
-      font-size: 1.05rem;
+      font-size: 1.25rem;
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .feature p {
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       color: var(--text-muted);
-      line-height: 1.55;
+      line-height: 1.6;
     }
     .feature-gif {
-      margin-top: 16px;
-      border-radius: 8px;
+      margin-top: 8px;
+      border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--border);
     }
     .feature-gif img {
       width: 100%;
-      max-width: 320px;
+      max-width: 400px;
       height: auto;
       display: block;
     }
