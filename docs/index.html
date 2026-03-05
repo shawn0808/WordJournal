@@ -206,22 +206,6 @@
       border: 1px solid var(--border);
       box-shadow: 0 30px 60px -12px rgba(0,0,0,0.08);
     }
-    .feature-combined {
-      display: flex;
-      flex-direction: column;
-      gap: 32px;
-    }
-    .feature-combined .feature-block h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    .feature-combined .feature-block p {
-      font-size: 1.05rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin: 0;
-    }
     .feature h3 {
       font-size: 1.25rem;
       font-weight: 600;
@@ -231,18 +215,32 @@
       font-size: 1.05rem;
       color: var(--text-muted);
       line-height: 1.6;
+      margin-bottom: 24px;
     }
-    .feature-gif {
-      margin-top: 8px;
-      border-radius: 12px;
+    /* Same size as video demo - add GIF inside */
+    .feature-demo {
+      margin-left: -56px;
+      margin-right: -56px;
+      width: calc(100% + 112px);
+      aspect-ratio: 16 / 9;
+      border-radius: 16px;
       overflow: hidden;
-      border: 1px solid var(--border);
+      box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
+      background: var(--bg-alt);
     }
-    .feature-gif img {
+    .feature-demo img {
       width: 100%;
-      max-width: 400px;
-      height: auto;
+      height: 100%;
+      object-fit: cover;
       display: block;
+    }
+    @media (max-width: 768px) {
+      .feature { padding: 32px 24px; }
+      .feature-demo {
+        margin-left: -24px;
+        margin-right: -24px;
+        width: calc(100% + 48px);
+      }
     }
 
     /* Screenshots grid */
@@ -402,22 +400,19 @@
     <div class="container">
       <h2>How it helps.</h2>
       <div class="features">
-        <div class="feature feature-combined">
-          <div class="feature-block">
-            <h3>Works everywhere</h3>
-            <p>Select text in Safari, PDFs, Notes, Slack — any app. Shift+Click or double-tap Option to see the definition instantly.</p>
-          </div>
-          <div class="feature-block">
-            <h3>Stay in flow</h3>
-            <p>No switching apps or opening tabs. A floating popup appears right next to the word. One click to add definitions to your journal.</p>
-          </div>
-          <div class="feature-gif">
-            <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/welcome-step4.gif" alt="One-click add to journal" width="320">
+        <div class="feature">
+          <h3>Works in every window and stay in flow</h3>
+          <p>Select text in Safari, PDFs, Notes, Slack — any app. Shift+Click or double-tap Option to see the definition instantly. No switching apps or opening tabs. A floating popup appears right next to the word. One click to add definitions to your journal.</p>
+          <div class="feature-demo">
+            <!-- Add GIF here -->
           </div>
         </div>
         <div class="feature">
           <h3>Build your vocabulary</h3>
           <p>Save definitions as you read. Search, sort, hear pronunciation, and export to CSV for flashcards or study tools.</p>
+          <div class="feature-demo">
+            <!-- Add GIF here -->
+          </div>
         </div>
       </div>
     </div>
