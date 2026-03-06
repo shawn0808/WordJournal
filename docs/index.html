@@ -179,6 +179,11 @@
       overflow: hidden;
       box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
     }
+    /* Top 2 videos: full width to match leftmost/rightmost content edges */
+    .showcase--wide .showcase-inner {
+      max-width: none;
+      width: 100%;
+    }
     .showcase img,
     .showcase video {
       width: 100%;
@@ -415,7 +420,7 @@
     </div>
   </section>
 
-  <section class="showcase">
+  <section class="showcase showcase--wide">
     <div class="container">
       <div class="showcase-inner showcase-video">
         <video id="demo-video" autoplay muted loop playsinline poster="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png">
@@ -429,7 +434,7 @@
     </div>
   </section>
 
-  <section class="showcase">
+  <section class="showcase showcase--wide">
     <div class="container">
       <h2 class="showcase-heading">Popups work in every app to help you stay in the flow.</h2>
       <div class="showcase-inner">
