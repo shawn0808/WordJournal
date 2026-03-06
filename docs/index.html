@@ -307,26 +307,12 @@
       .screenshots { grid-template-columns: 1fr; }
     }
     .screenshot {
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      background: var(--card);
-      display: flex;
-      flex-direction: column;
-    }
-    .screenshot figcaption {
-      padding: 16px 16px 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text);
-      order: 1;
+      margin: 0;
     }
     .screenshot img {
       width: 100%;
       height: auto;
       display: block;
-      order: 2;
     }
     img, video { max-width: 100%; height: auto; }
 
@@ -458,16 +444,13 @@
       <h2>See it in action.</h2>
       <div class="screenshots">
         <figure class="screenshot">
-          <figcaption>Definition popup with pronunciation & add-to-journal</figcaption>
-          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup.png" alt="Definition popup with pronunciation">
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup.png" alt="Definition popup with pronunciation & add-to-journal">
         </figure>
         <figure class="screenshot">
-          <figcaption>Editable journal with search & sort</figcaption>
-          <img src="screenshots/journal.png" alt="Editable journal">
+          <img src="screenshots/journal.png" alt="Editable journal with search & sort">
         </figure>
         <figure class="screenshot">
-          <figcaption>Menu bar — type a word or pick from recent</figcaption>
-          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/menu-bar.png" alt="Menu bar lookup">
+          <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/menu-bar.png" alt="Menu bar — type a word or pick from recent">
         </figure>
       </div>
     </div>
