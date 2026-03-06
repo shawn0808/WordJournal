@@ -532,6 +532,9 @@
       const toggle = document.getElementById('sound-toggle');
       const iconMuted = document.getElementById('sound-icon-muted');
       const iconUnmuted = document.getElementById('sound-icon-unmuted');
+      if (video) {
+        video.playbackRate = 1.2;
+      }
       if (video && toggle) {
         toggle.addEventListener('click', function() {
           video.muted = !video.muted;
