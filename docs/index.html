@@ -179,7 +179,10 @@
       overflow: hidden;
       box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
     }
-    /* Top 2 videos: full width to match leftmost/rightmost content edges */
+    /* Top 2 videos: full width + ~20% larger */
+    .showcase--wide .container {
+      max-width: 1344px;
+    }
     .showcase--wide .showcase-inner {
       max-width: none;
       width: 100%;
