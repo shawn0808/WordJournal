@@ -258,7 +258,8 @@
       box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
       background: var(--bg-alt);
     }
-    .feature-demo img {
+    .feature-demo img,
+    .feature-demo video {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -442,7 +443,10 @@
       <div class="features">
         <div class="feature">
           <div class="feature-demo">
-            <!-- Add GIF here -->
+            <video autoplay muted loop playsinline>
+              <source src="stay_in_flow.mov" type="video/quicktime">
+              <source src="stay_in_flow.mov" type="video/mp4">
+            </video>
           </div>
         </div>
         <div class="feature">
