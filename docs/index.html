@@ -299,9 +299,14 @@
       margin-bottom: 48px;
     }
     .screenshots {
+      max-width: 1000px;
+      margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 24px;
+    }
+    .screenshot-full {
+      grid-column: 1 / -1;
     }
     @media (max-width: 768px) {
       .screenshots { grid-template-columns: 1fr; }
@@ -447,10 +452,10 @@
           <img src="screenshots/definition-popup.png" alt="Definition popup with pronunciation & add-to-journal">
         </figure>
         <figure class="screenshot">
-          <img src="screenshots/journal.png" alt="Editable journal with search & sort">
-        </figure>
-        <figure class="screenshot">
           <img src="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/menu-bar.png" alt="Menu bar — type a word or pick from recent">
+        </figure>
+        <figure class="screenshot screenshot-full">
+          <img src="screenshots/journal.png" alt="Editable journal with search & sort">
         </figure>
       </div>
     </div>
