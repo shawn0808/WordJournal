@@ -247,22 +247,20 @@
       line-height: 1.6;
       margin-bottom: 24px;
     }
-    /* Same size as video demo - add GIF inside */
+    /* Same styling as top showcase video */
     .feature-demo {
       margin-left: -56px;
       margin-right: -56px;
       width: calc(100% + 112px);
-      aspect-ratio: 16 / 9;
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 30px 60px -12px rgba(0,0,0,0.18);
       background: var(--bg-alt);
     }
-    .feature-demo img,
-    .feature-demo video {
+    .feature-demo video,
+    .feature-demo img {
       width: 100%;
-      height: 100%;
-      object-fit: contain;
+      height: auto;
       display: block;
     }
     @media (max-width: 768px) {
