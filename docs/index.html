@@ -305,25 +305,17 @@
       margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
+      grid-auto-rows: 420px;
       gap: 24px;
+    }
+    .screenshots img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
     }
     @media (max-width: 768px) {
       .screenshots { grid-template-columns: 1fr; }
-    }
-    .screenshot {
-      margin: 0;
-      height: 593px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background: var(--bg-alt);
-    }
-    .screenshot img {
-      height: 100%;
-      width: auto;
-      object-fit: contain;
-      display: block;
     }
     img, video { max-width: 100%; height: auto; }
 
@@ -454,15 +446,9 @@
     <div class="container">
       <h2>See it in action.</h2>
       <div class="screenshots">
-        <figure class="screenshot">
-          <img src="screenshots/definition-popup.png" alt="Definition popup with pronunciation & add-to-journal">
-        </figure>
-        <figure class="screenshot">
-          <img src="screenshots/menu-bar.png" alt="Menu bar — type a word or pick from recent">
-        </figure>
-        <figure class="screenshot">
-          <img src="screenshots/journal.png" alt="Editable journal with search & sort">
-        </figure>
+        <img src="screenshots/definition-popup.png" alt="Definition popup with pronunciation & add-to-journal">
+        <img src="screenshots/menu-bar.png" alt="Menu bar — type a word or pick from recent">
+        <img src="screenshots/journal.png" alt="Editable journal with search & sort">
       </div>
     </div>
   </section>
