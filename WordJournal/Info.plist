@@ -33,7 +33,7 @@
 	<key>SUAutomaticallyUpdate</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://shawn0808.github.io/WordJournal/appcast.xml</string>
+	<string>https://wordjournal.io/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>UwrJUfjiLgnMwliyZ+jr5vT4ta7pLbpvlv26MwG+0HY=</string>
 </dict>
