@@ -240,6 +240,24 @@
       transition: background 0.2s;
     }
     .showcase-video .sound-toggle:hover { background: rgba(0,0,0,0.7); }
+    .showcase-video .video-play-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 5;
+    }
+    .showcase-video .video-play-overlay:hover { background: rgba(0,0,0,0.7); }
 
     /* Features - same scale as video showcase */
     .features-section {
@@ -474,10 +492,14 @@
   <section class="showcase showcase--wide">
     <div class="container">
       <div class="showcase-inner showcase-video">
-        <video id="demo-video" autoplay muted loop playsinline preload="auto" poster="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png">
+        <video id="demo-video" autoplay muted loop playsinline preload="auto" poster="screenshots/definition-popup.png">
+          <source src="demo_mobile.mp4" type="video/mp4">
           <source src="demo_sped.mp4" type="video/mp4">
           <source src="demo.mp4" type="video/mp4">
         </video>
+        <button type="button" class="video-play-overlay" id="demo-play-btn" title="Play" aria-label="Play video" style="display:none">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
         <button type="button" class="sound-toggle" id="sound-toggle" title="Toggle sound" aria-label="Toggle sound">
           <svg id="sound-icon-muted" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           <svg id="sound-icon-unmuted" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -489,10 +511,13 @@
   <section class="showcase showcase--wide">
     <div class="container">
       <h2 class="showcase-heading">Popups work in every app to help you stay in the flow.</h2>
-      <div class="showcase-inner">
-        <video autoplay muted loop playsinline preload="auto">
+      <div class="showcase-inner showcase-video">
+        <video id="flow-video" autoplay muted loop playsinline preload="auto">
           <source src="stay_in_flow.mp4" type="video/mp4">
         </video>
+        <button type="button" class="video-play-overlay" id="flow-play-btn" title="Play" aria-label="Play video" style="display:none">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
       </div>
     </div>
   </section>
@@ -569,17 +594,38 @@
         });
       });
 
-      // Sound toggle for demo video
+      // Sound toggle and play overlay for demo video
       const video = document.getElementById('demo-video');
       const toggle = document.getElementById('sound-toggle');
+      const playBtn = document.getElementById('demo-play-btn');
       const iconMuted = document.getElementById('sound-icon-muted');
       const iconUnmuted = document.getElementById('sound-icon-unmuted');
-      if (video && toggle) {
-        toggle.addEventListener('click', function() {
-          video.muted = !video.muted;
-          iconMuted.style.display = video.muted ? '' : 'none';
-          iconUnmuted.style.display = video.muted ? 'none' : '';
-        });
+      if (video) {
+        function updatePlayBtn() {
+          if (playBtn) playBtn.style.display = video.paused ? '' : 'none';
+        }
+        video.addEventListener('play', updatePlayBtn);
+        video.addEventListener('pause', updatePlayBtn);
+        if (playBtn) {
+          playBtn.addEventListener('click', function() { video.play(); });
+          setTimeout(updatePlayBtn, 500);
+        }
+        if (toggle) {
+          toggle.addEventListener('click', function() {
+            video.muted = !video.muted;
+            iconMuted.style.display = video.muted ? '' : 'none';
+            iconUnmuted.style.display = video.muted ? 'none' : '';
+          });
+        }
+      }
+      var flowVideo = document.getElementById('flow-video');
+      var flowPlayBtn = document.getElementById('flow-play-btn');
+      if (flowVideo && flowPlayBtn) {
+        function updateFlowPlayBtn() { flowPlayBtn.style.display = flowVideo.paused ? '' : 'none'; }
+        flowVideo.addEventListener('play', updateFlowPlayBtn);
+        flowVideo.addEventListener('pause', updateFlowPlayBtn);
+        flowPlayBtn.addEventListener('click', function() { flowVideo.play(); });
+        setTimeout(updateFlowPlayBtn, 500);
       }
     });
   </script>
