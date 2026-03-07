@@ -457,46 +457,9 @@
       vertical-align: middle;
     }
 
-    /* WeChat: prompt to open in browser */
-    .wechat-banner {
-      display: none;
-      position: fixed;
-      top: 60px;
-      left: 0;
-      right: 0;
-      z-index: 99;
-      background: var(--accent);
-      color: white;
-      padding: 10px 16px;
-      font-size: 0.875rem;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .wechat-banner.is-visible { display: block; }
-    .wechat-banner .wechat-banner-text { margin-right: 8px; }
-    .wechat-banner .wechat-banner-dismiss {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: white;
-      opacity: 0.9;
-      cursor: pointer;
-      padding: 4px;
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-    .wechat-banner .wechat-banner-dismiss:hover { opacity: 1; }
-
   </style>
 </head>
 <body>
-  <div class="wechat-banner" id="wechat-banner">
-    <span class="wechat-banner-text">For the best experience, tap ⋮ in the top right, then choose "Open in Browser"</span>
-    <button type="button" class="wechat-banner-dismiss" id="wechat-banner-dismiss" aria-label="Dismiss">×</button>
-  </div>
   <nav>
     <div class="nav-inner">
       <a href="#" class="nav-logo">
@@ -601,22 +564,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // WeChat: show banner to open in browser
-      var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
-      var wechatBanner = document.getElementById('wechat-banner');
-      var wechatDismiss = document.getElementById('wechat-banner-dismiss');
-      if (isWeChat && wechatBanner) {
-        if (!sessionStorage.getItem('wechat-banner-dismissed')) {
-          wechatBanner.classList.add('is-visible');
-        }
-        if (wechatDismiss) {
-          wechatDismiss.addEventListener('click', function() {
-            wechatBanner.classList.remove('is-visible');
-            sessionStorage.setItem('wechat-banner-dismissed', '1');
-          });
-        }
-      }
-
       // Nav scroll state
       const nav = document.querySelector('nav');
       const hero = document.querySelector('.hero');
