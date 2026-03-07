@@ -427,6 +427,7 @@
     <div class="container">
       <div class="showcase-inner showcase-video">
         <video id="demo-video" autoplay muted loop playsinline poster="https://raw.githubusercontent.com/shawn0808/WordJournal/main/screenshots/definition-popup-zoomed.png">
+          <source src="demo_sped.mp4" type="video/mp4">
           <source src="demo.mp4" type="video/mp4">
         </video>
         <button type="button" class="sound-toggle" id="sound-toggle" title="Toggle sound" aria-label="Toggle sound">
@@ -532,9 +533,6 @@
       const toggle = document.getElementById('sound-toggle');
       const iconMuted = document.getElementById('sound-icon-muted');
       const iconUnmuted = document.getElementById('sound-icon-unmuted');
-      if (video) {
-        video.playbackRate = 1.2;
-      }
       if (video && toggle) {
         toggle.addEventListener('click', function() {
           video.muted = !video.muted;
