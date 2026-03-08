@@ -45,11 +45,6 @@ tag_x = title_x
 tag_y = title_y + 90
 draw.text((tag_x, tag_y), tagline, fill=MUTED, font=tag_font)
 
-# Accent line under title
-line_y = title_y + 85
-line_x1, line_x2 = title_x, title_x + 200
-draw.rectangle([line_x1, line_y, line_x2, line_y + 4], fill=ACCENT)
-
 # macOS badge
 badge = "macOS 13+ · Free"
 badge_y = H - 80
