@@ -28,12 +28,14 @@ class AccessibilityMonitor: ObservableObject {
     }
     
     func checkAccessibilityPermission(showPrompt: Bool = false) {
-        if showPrompt {
-            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-            hasAccessibilityPermission = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: showPrompt]
+        let trusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        if Thread.isMainThread {
+            hasAccessibilityPermission = trusted
         } else {
-            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
-            hasAccessibilityPermission = AXIsProcessTrustedWithOptions(options as CFDictionary)
+            DispatchQueue.main.async { [weak self] in
+                self?.hasAccessibilityPermission = trusted
+            }
         }
     }
     
@@ -218,6 +220,15 @@ class AccessibilityMonitor: ObservableObject {
     
     // MARK: - Accessibility API reader
     
+    /// Fast AX-only read of the selected text for the current frontmost app.
+    /// Returns empty string if AX fails or no text is selected. Never simulates Cmd+C.
+    func getSelectedTextViaAccessibility() -> String {
+        guard hasAccessibilityPermission else { return "" }
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else { return "" }
+        return readSelectedTextViaAccessibility(pid: frontmostApp.processIdentifier)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+    
     private func readSelectedTextViaAccessibility(pid: pid_t) -> String? {
         let appRef = AXUIElementCreateApplication(pid)
         
@@ -380,6 +391,12 @@ class AccessibilityMonitor: ObservableObject {
         cachedSelectedText = ""
         cachedFromAppPID = 0
         cacheLock.unlock()
-        selectedText = ""
+        if Thread.isMainThread {
+            selectedText = ""
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.selectedText = ""
+            }
+        }
     }
 }

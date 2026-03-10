@@ -369,7 +369,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 alert.messageText = "No Text Selected"
-                alert.informativeText = "Please select a word or phrase first, then \(TriggerManager.shared.triggerMethod.displayName) to look it up"
+                let hint: String
+                switch TriggerManager.shared.triggerMethod {
+                case .autoSelect:
+                    hint = "Select a word or phrase to look it up"
+                default:
+                    hint = "Please select a word or phrase first, then \(TriggerManager.shared.triggerMethod.displayName) to look it up"
+                }
+                alert.informativeText = hint
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "OK")
                 alert.runModal()

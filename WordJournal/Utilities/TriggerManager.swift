@@ -8,12 +8,14 @@
 import AppKit
 
 enum TriggerMethod: String, CaseIterable {
+    case autoSelect = "autoSelect"
     case shiftClick = "shiftClick"
     case optionClick = "optionClick"
     case doubleOption = "doubleOption"
     
     var displayName: String {
         switch self {
+        case .autoSelect: return "Auto on select"
         case .shiftClick: return "Shift + Click"
         case .optionClick: return "Option + Click"
         case .doubleOption: return "Double-tap Option (⌥)"
@@ -22,6 +24,7 @@ enum TriggerMethod: String, CaseIterable {
     
     var description: String {
         switch self {
+        case .autoSelect: return "Select text and the definition appears automatically"
         case .shiftClick: return "Select text, then hold Shift and click to look it up"
         case .optionClick: return "Select text, then hold Option (⌥) and click to look it up"
         case .doubleOption: return "Select text, then quickly press Option (⌥) twice to look it up"
@@ -30,6 +33,7 @@ enum TriggerMethod: String, CaseIterable {
     
     var icon: String {
         switch self {
+        case .autoSelect: return "text.cursor"
         case .shiftClick: return "cursorarrow.click"
         case .optionClick: return "cursorarrow.click"
         case .doubleOption: return "option"
@@ -54,6 +58,10 @@ class TriggerManager: ObservableObject {
     private var keyMonitor: Any?
     private var activationHandler: (() -> Void)?
     
+    // Auto on select: debounce and dedupe
+    private var autoSelectWorkItem: DispatchWorkItem?
+    private var lastAutoLookupText: String = ""
+    
     /// The screen location where the last trigger was activated (e.g. Shift+Click position)
     var lastTriggerLocation: NSPoint?
     
@@ -67,8 +75,8 @@ class TriggerManager: ObservableObject {
     private var optionPreTriggerPID: pid_t = 0
     
     private init() {
-        let saved = UserDefaults.standard.string(forKey: "triggerMethod") ?? TriggerMethod.shiftClick.rawValue
-        self.triggerMethod = TriggerMethod(rawValue: saved) ?? .shiftClick
+        let saved = UserDefaults.standard.string(forKey: "triggerMethod") ?? TriggerMethod.autoSelect.rawValue
+        self.triggerMethod = TriggerMethod(rawValue: saved) ?? .autoSelect
         print("TriggerManager: Initialized with trigger method: \(triggerMethod.displayName)")
     }
     
@@ -102,6 +110,8 @@ class TriggerManager: ObservableObject {
         }
         
         switch triggerMethod {
+        case .autoSelect:
+            setupAutoSelect()
         case .shiftClick:
             setupShiftClick()
         case .optionClick:
@@ -109,6 +119,67 @@ class TriggerManager: ObservableObject {
         case .doubleOption:
             setupDoubleOption()
         }
+    }
+    
+    // MARK: - Auto on select
+    
+    private func setupAutoSelect() {
+        print("TriggerManager: Setting up Auto on select")
+        
+        // Listen for mouse-up (end of drag-select or double-click to select)
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
+            self?.handleAutoSelectMouseUp(event)
+        }
+        
+        if mouseMonitor == nil {
+            monitorActive = false
+            print("TriggerManager: ❌ Failed to create Auto on select monitor")
+        } else {
+            monitorActive = true
+            print("TriggerManager: ✅ Auto on select monitor active")
+        }
+    }
+    
+    private func handleAutoSelectMouseUp(_ event: NSEvent) {
+        guard triggerMethod == .autoSelect, let handler = activationHandler else { return }
+        
+        // Skip when our own app is frontmost
+        if let frontmost = NSWorkspace.shared.frontmostApplication,
+           frontmost.bundleIdentifier == Bundle.main.bundleIdentifier {
+            return
+        }
+        
+        // Skip if modifier keys are held (user is doing something else)
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control])
+        guard modifiers.isEmpty else { return }
+        
+        // Cancel any pending lookup from a previous mouse-up
+        autoSelectWorkItem?.cancel()
+        
+        // Short delay to let the selection settle, then read selected text
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            guard self.triggerMethod == .autoSelect else { return }
+            
+            let text = AccessibilityMonitor.shared.getCurrentSelectedText()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: .punctuationCharacters)
+                .prefix(200)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            guard !text.isEmpty else { return }
+            let trimmed = String(text)
+            
+            // Skip if same text we just looked up
+            guard trimmed != self.lastAutoLookupText else { return }
+            
+            self.lastAutoLookupText = trimmed
+            self.lastTriggerLocation = NSEvent.mouseLocation
+            print("TriggerManager: ✅✅✅ AUTO SELECT triggered for '\(trimmed)'")
+            handler()
+        }
+        autoSelectWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
     }
     
     // MARK: - Shift+Click
@@ -260,6 +331,8 @@ class TriggerManager: ObservableObject {
     }
     
     func unregisterTriggers() {
+        autoSelectWorkItem?.cancel()
+        autoSelectWorkItem = nil
         if let monitor = mouseMonitor {
             NSEvent.removeMonitor(monitor)
             mouseMonitor = nil
@@ -268,7 +341,13 @@ class TriggerManager: ObservableObject {
             NSEvent.removeMonitor(monitor)
             keyMonitor = nil
         }
-        monitorActive = false
+        if Thread.isMainThread {
+            monitorActive = false
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.monitorActive = false
+            }
+        }
     }
     
     deinit {

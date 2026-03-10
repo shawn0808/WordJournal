@@ -168,7 +168,7 @@ struct WelcomeFlowView: View {
     
     private var step3Shortcut: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Image(systemName: "cursorarrow.click")
+            Image(systemName: "text.cursor")
                 .font(.system(size: 40, weight: .thin))
                 .foregroundColor(accentBlue)
             
@@ -249,6 +249,8 @@ struct WelcomeFlowView: View {
     private var lookupTipText: String {
         let method = triggerManager.triggerMethod
         switch method {
+        case .autoSelect:
+            return "Select a word as you read — the definition appears automatically"
         case .shiftClick:
             return "Select a word as you read, and hold Shift and click to look it up conveniently"
         case .optionClick:
