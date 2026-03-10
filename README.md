@@ -1,6 +1,6 @@
 # Word Journal
 
-A native macOS menu bar app for looking up words and phrases instantly from any application. Select text, trigger a lookup, and build your personal vocabulary journal — all without leaving your current window.
+A native macOS menu bar app for looking up words and phrases instantly from any application. Select text, popup on select, and build your personal vocabulary journal — all without leaving your current window.
 
 ## Video
 
@@ -39,7 +39,7 @@ Editable table with search, sortable columns, pronunciation, and export.
 
 ## Features
 
-- **System-wide word lookup** — Select any text in any app, then Shift+Click or Double-tap Option to see its definition instantly
+- **System-wide word lookup** — Select any text in any app; the definition popup appears automatically (or use Shift+Click / Option+Click / Double-tap Option)
 - **Smart popup positioning** — Definition popup appears right next to the word you clicked, with intelligent corner placement to avoid covering the text
 - **Menu bar lookup** — Type a word directly in the menu bar dropdown to look it up
 - **Recent lookups** — Quickly re-access your last 5 looked-up words from the menu bar dropdown
@@ -103,10 +103,8 @@ The `Info.plist` is already configured with:
 ### Look up a word or phrase
 
 1. Select any text in any application (double-click a word, or drag to select a phrase)
-2. Trigger the lookup:
-   - **Shift+Click:** Hold Shift and click anywhere
-   - **Double-tap Option:** Quickly press Option (⌥) twice
-3. A floating popup appears with the definition(s)
+2. The definition popup appears automatically (default: **Auto on select**)
+3. Or use manual triggers: **Shift+Click**, **Option+Click**, or **Double-tap Option**
 
 Alternatively, click the menu bar icon and type a word in the search field.
 
@@ -130,7 +128,7 @@ Alternatively, click the menu bar icon and type a word in the search field.
 - Click the menu bar icon -> "Preferences" (or `⌘,`)
 - Updates are checked automatically when the app launches (if online)
 
-- Switch between **Shift+Click** and **Double-tap Option** activation
+- Switch between **Auto on select**, **Shift+Click**, **Option+Click**, and **Double-tap Option** activation
 - View accessibility permission status
 
 ## Project Structure
@@ -151,7 +149,7 @@ WordJournal/
 │   ├── MenuBarView.swift             # Menu bar popover with word lookup field
 │   └── PreferencesView.swift         # Preferences (trigger method, permissions)
 ├── Utilities/
-│   ├── TriggerManager.swift          # Shift+Click & Double-tap Option detection
+│   ├── TriggerManager.swift          # Auto on select, Shift+Click, Option+Click, Double-tap Option
 │   └── HotKeyManager.swift           # Optional hotkey support
 └── Resources/
     ├── Assets.xcassets/               # App icon & menu bar icon
@@ -195,14 +193,18 @@ WordJournal/
 
 ### Trigger Not Responding
 
-**Shift+Click:**
-- Ensure only Shift is held (no Cmd, Option, or Control)
-- Try selecting text first, then Shift+Click
+**Auto on select (default):**
+- Select text and release the mouse — the popup appears after a brief moment
+- Ensure Word Journal is not the frontmost app when selecting (select in Safari, TextEdit, etc.)
+
+**Shift+Click / Option+Click:**
+- Ensure only the modifier is held (no other modifiers)
+- Try selecting text first, then click
 
 **Double-tap Option:**
 - Press Option twice quickly (within ~400ms)
 - Do not press other keys between the two Option taps
-- Check Preferences to confirm "Double-tap Option" is selected
+- Check Preferences to confirm your trigger method is selected
 
 ### No Text Selected in PDF
 
