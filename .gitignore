@@ -41,6 +41,9 @@ Carthage/Build
 .AppleDouble
 .LSOverride
 
+# Sparkle updates (may contain private keys)
+WordJournalUpdates/
+
 # User-specific files
 WordJournalTests/
 .cursor/debug.log
