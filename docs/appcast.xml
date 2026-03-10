@@ -3,6 +3,15 @@
     <channel>
         <title>WordJournal</title>
         <item>
+            <title>1.6</title>
+            <pubDate>Tue, 10 Mar 2026 15:19:09 +0800</pubDate>
+            <sparkle:version>7</sparkle:version>
+            <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:releaseNotesLink>https://github.com/shawn0808/WordJournal/releases/tag/v1.6</sparkle:releaseNotesLink>
+            <enclosure url="https://shawn0808.github.io/WordJournal/WordJournal-1.6.dmg" length="3677194" type="application/octet-stream" sparkle:edSignature="p1wOIFv8B3HR9Ytgff0S3RCBkzpQ7+6r8lOIKCTEmvRyH3Ppc2YbL67LN5MnlCvm3GbF4++BMJbozLsbJwxiAg=="/>
+        </item>
+        <item>
             <title>1.5</title>
             <pubDate>Wed, 05 Feb 2026 00:00:00 +0000</pubDate>
             <sparkle:version>6</sparkle:version>
