@@ -31,6 +31,7 @@ class KeyablePanel: NSPanel {
 class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate?
     
+    var mainWindow: NSWindow?
     var journalWindow: NSWindow?
     var preferencesWindow: NSWindow?
     var popupWindow: NSWindow?
@@ -72,6 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.showAccessibilityAlert()
             } else {
                 print("✅ Accessibility permissions granted")
+                self?.showMainWindow()
             }
         }
         
@@ -236,7 +238,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        return false
+        if !flag {
+            showMainWindow()
+        }
+        return true
+    }
+    
+    func showMainWindow() {
+        if let window = mainWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        let appDelegate = self
+        let contentView = MainWindowView(onLookupWord: { word in appDelegate.lookupWord(word) })
+            .environmentObject(JournalStorage.shared)
+        
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Word Journal"
+        window.contentView = hostingView
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        mainWindow = window
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     func showJournal() {
@@ -459,7 +493,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popupWindow?.close()
         
         let panel = KeyablePanel(
-            contentRect: NSRect(x: 0, y: 0, width: 484, height: 464),
+            contentRect: NSRect(x: 0, y: 0, width: 484, height: 540),
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
             backing: .buffered,
             defer: false
@@ -481,9 +515,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let screen = NSScreen.main {
             let outerPadding: CGFloat = 32
             let cardWidth: CGFloat = 420
-            let cardHeight: CGFloat = 400
+            let cardHeight: CGFloat = 476
             let panelWidth: CGFloat = cardWidth + outerPadding * 2   // 484
-            let panelHeight: CGFloat = cardHeight + outerPadding * 2 // 464
+            let panelHeight: CGFloat = cardHeight + outerPadding * 2 // 540
             let visibleFrame = screen.visibleFrame
             let gap: CGFloat = 8  // Small gap between click point and card edge
             

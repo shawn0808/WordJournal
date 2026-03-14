@@ -31,6 +31,13 @@
 		E7F81930415C6D7E8F012345 /* AnimatedGifView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F81930415C6D7E8F0123 /* AnimatedGifView.swift */; };
 		EC177E76932348A4B1AA5C58 /* DictionaryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1109AD88FEC84218AE0E961D /* DictionaryResult.swift */; };
 		SPARKLE001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = SPARKLE002 /* Sparkle */; };
+		AI001 /* AIWordInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI002 /* AIWordInsight.swift */; };
+		AI003 /* AIInsightService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI004 /* AIInsightService.swift */; };
+		AI005 /* AIConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI006 /* AIConfigStore.swift */; };
+		AI007 /* KeychainStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AI008 /* KeychainStorage.swift */; };
+		MW001 /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MW002 /* MainWindowView.swift */; };
+		AIIMG001 /* AIImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AIIMG002 /* AIImageService.swift */; };
+		AIIMG003 /* WordImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AIIMG004 /* WordImageCache.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +66,13 @@
 		E178ECA13B4642F39C7C11C3 /* WordJournalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordJournalApp.swift; sourceTree = "<group>"; };
 		F60718293A4B5C6D7E8F9012 /* OfflineBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBannerView.swift; sourceTree = "<group>"; };
 		F8B9C0D1E2F3041526374859 /* welcome-step3.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = "welcome-step3.gif"; sourceTree = "<group>"; };
+		AI002 /* AIWordInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIWordInsight.swift; sourceTree = "<group>"; };
+		AI004 /* AIInsightService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIInsightService.swift; sourceTree = "<group>"; };
+		AI006 /* AIConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConfigStore.swift; sourceTree = "<group>"; };
+		AI008 /* KeychainStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStorage.swift; sourceTree = "<group>"; };
+		MW002 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+		AIIMG002 /* AIImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIImageService.swift; sourceTree = "<group>"; };
+		AIIMG004 /* WordImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordImageCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,10 +93,15 @@
 			children = (
 				103222162A5548B7AAD7FF46 /* AccessibilityMonitor.swift */,
 				7D5FC24D207C4C53BBCD6028 /* DictionaryService.swift */,
+				AI004 /* AIInsightService.swift */,
+				AIIMG002 /* AIImageService.swift */,
+				AI006 /* AIConfigStore.swift */,
+				AI008 /* KeychainStorage.swift */,
 				B2C3D4E5F60718293A4B5C6D /* NetworkMonitor.swift */,
 				D4E5F60718293A4B5C6D7E8F /* OfflineBannerCoordinator.swift */,
 				C5E6F71829304B5C6D7E8F90 /* MenuBarPopoverCoordinator.swift */,
 				432AB30015D14538984D94CC /* JournalStorage.swift */,
+				AIIMG004 /* WordImageCache.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -92,6 +111,7 @@
 			children = (
 				98F646E3FB334B6F99E85287 /* WordEntry.swift */,
 				1109AD88FEC84218AE0E961D /* DictionaryResult.swift */,
+				AI002 /* AIWordInsight.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -115,6 +135,7 @@
 			isa = PBXGroup;
 			children = (
 				529DC1575D12445FA137B024 /* DefinitionPopupView.swift */,
+				MW002 /* MainWindowView.swift */,
 				D6E7F81930415C6D7E8F0123 /* AnimatedGifView.swift */,
 				0BD5DA03865341129EA1B8C6 /* JournalView.swift */,
 				D01D6E11C5784C71890C9A2E /* MenuBarView.swift */,
@@ -259,6 +280,13 @@
 				A1E2F3B4C5D60718293A4B5C /* WelcomeFlowView.swift in Sources */,
 				AC42E754193F4EED94288ED2 /* HotKeyManager.swift in Sources */,
 				126EFD49D31C4F6D89681DCC /* TriggerManager.swift in Sources */,
+				AI001 /* AIWordInsight.swift in Sources */,
+				AI003 /* AIInsightService.swift in Sources */,
+				AI005 /* AIConfigStore.swift in Sources */,
+				AI007 /* KeychainStorage.swift in Sources */,
+				MW001 /* MainWindowView.swift in Sources */,
+				AIIMG001 /* AIImageService.swift in Sources */,
+				AIIMG003 /* WordImageCache.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

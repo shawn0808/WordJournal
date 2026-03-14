@@ -10,6 +10,10 @@ import SwiftUI
 struct PreferencesView: View {
     @EnvironmentObject var triggerManager: TriggerManager
     @ObservedObject var accessibilityMonitor = AccessibilityMonitor.shared
+    @ObservedObject var aiConfig = AIConfigStore.shared
+    
+    @State private var apiKeyInput: String = ""
+    @State private var hasApiKey = false
     
     // Consistent accent color
     private let accentBlue = Color(red: 0.35, green: 0.56, blue: 0.77)
@@ -123,6 +127,131 @@ struct PreferencesView: View {
             .padding(20)
             .tabItem {
                 Label("General", systemImage: "gear")
+            }
+            
+            // AI Tab
+            VStack(alignment: .leading, spacing: 20) {
+                Text("AI Insights")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                
+                // Billing notice
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(accentBlue)
+                    Text("Most providers require a credit card or account top-up before use, even for \"free\" tiers. Check each provider's current terms.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(8)
+                
+                Toggle(isOn: $aiConfig.isEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Enable AI insights in definition popup")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Show synonyms, antonyms, and plain-language explanation")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+                .tint(accentBlue)
+                
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Provider")
+                        .font(.system(size: 14, weight: .semibold))
+                    
+                    Picker("", selection: $aiConfig.provider) {
+                        ForEach(AIProvider.allCases) { provider in
+                            Text(provider.displayName).tag(provider)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("API Key")
+                        .font(.system(size: 14, weight: .semibold))
+                    
+                    if hasApiKey {
+                        HStack(spacing: 8) {
+                            Text("••••••••••••")
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .padding(8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.secondary.opacity(0.1))
+                                .cornerRadius(6)
+                            Button("Clear") {
+                                _ = aiConfig.clearApiKey()
+                                hasApiKey = false
+                                apiKeyInput = ""
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    } else {
+                        SecureField("Paste your API key", text: $apiKeyInput)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit {
+                                if !apiKeyInput.isEmpty {
+                                    _ = aiConfig.setApiKey(apiKeyInput)
+                                    hasApiKey = true
+                                }
+                            }
+                        Button("Save") {
+                            if !apiKeyInput.isEmpty {
+                                _ = aiConfig.setApiKey(apiKeyInput)
+                                hasApiKey = true
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(accentBlue)
+                    }
+                    
+                    Text("Your key is stored locally and never sent except to your chosen AI provider. Each provider needs its own key—clear and re-enter when switching.")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    
+                    if aiConfig.provider == .openAI {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("With OpenAI, Word of the Day cards can show AI-generated background images.")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                            Button("Clear Word of the Day image cache") {
+                                WordImageCache.clearAll()
+                            }
+                            .font(.system(size: 11))
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                    
+                    Group {
+                        switch aiConfig.provider {
+                        case .openAI:
+                            Link("Get API key: platform.openai.com", destination: URL(string: "https://platform.openai.com/api-keys")!)
+                        case .gemini:
+                            Link("Get API key: aistudio.google.com (free tier)", destination: URL(string: "https://aistudio.google.com/apikey")!)
+                        case .deepSeek:
+                            Link("Get API key: platform.deepseek.com (free tier)", destination: URL(string: "https://platform.deepseek.com")!)
+                        }
+                    }
+                    .font(.system(size: 10))
+                }
+                
+                Spacer()
+            }
+            .padding(20)
+            .tabItem {
+                Label("AI", systemImage: "sparkles")
+            }
+            .onAppear {
+                hasApiKey = aiConfig.apiKey != nil
             }
             
             // About Tab

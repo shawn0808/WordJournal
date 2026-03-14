@@ -34,6 +34,11 @@ struct DefinitionPopupView: View {
     @State private var addedDefinitions: Set<String> = []  // Track which definitions have been added
     @State private var hoveredButton: String? = nil  // Track hovered + button for animation
     @StateObject private var audioPlayer = PronunciationPlayer()
+    @ObservedObject private var aiConfig = AIConfigStore.shared
+    
+    @State private var aiInsight: AIWordInsight?
+    @State private var aiLoading = false
+    @State private var aiError: String?
     
     // Accent color for consistent theming
     private let accentBlue = Color(red: 0.35, green: 0.56, blue: 0.77)  // #5B8FB9-ish
@@ -156,9 +161,9 @@ struct DefinitionPopupView: View {
                                             
                                             if let example = definition.example, !example.isEmpty {
                                                 Text("\"\(example)\"")
-                                                    .font(.system(size: 12, weight: .regular, design: .serif))
+                                                    .font(.system(size: 13, weight: .regular, design: .serif))
                                                     .italic()
-                                                    .foregroundColor(.secondary.opacity(0.8))
+                                                    .foregroundColor(.primary.opacity(0.85))
                                                     .lineSpacing(2)
                                                     .padding(.leading, 4)
                                                     .textSelection(.enabled)
@@ -198,7 +203,7 @@ struct DefinitionPopupView: View {
                 }
                 .frame(maxHeight: 300)
                 
-                // Source attribution
+                // Source attribution (NOAD / dictionary) — before AI
                 if let source = result.sourceUrls?.first {
                     Rectangle()
                         .fill(Color.secondary.opacity(0.1))
@@ -212,6 +217,14 @@ struct DefinitionPopupView: View {
                             .foregroundColor(.secondary.opacity(0.45))
                         Spacer()
                     }
+                }
+                
+                // AI Insights section
+                if aiConfig.hasValidConfig {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.1))
+                        .frame(height: 1)
+                    aiInsightsSection(result: result)
                 }
             }
         }
@@ -231,6 +244,148 @@ struct DefinitionPopupView: View {
         .padding(32)  // Outer transparent padding so corners + shadow aren't clipped
         .onHover { hovering in
             isHovered = hovering
+        }
+        .task(id: "\(word)-\(result != nil)") {
+            await fetchAIInsightIfNeeded()
+        }
+    }
+    
+    @ViewBuilder
+    private func aiInsightsSection(result: DictionaryResult) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Section label — matches dictionary POS style (NOUN, VERB)
+            Text("AI INSIGHTS (\(aiConfig.provider.displayName))")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(accentBlue)
+                .textCase(.uppercase)
+                .tracking(0.8)
+            
+            if aiLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Loading AI insights...")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
+            } else if let insight = aiInsight {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Plain explanation — aligned like dictionary definition (number + content)
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("1")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(accentBlue.opacity(0.6))
+                            .frame(width: 18, alignment: .trailing)
+                        Text(insight.plainExplanation)
+                            .font(.system(size: 13.5, weight: .regular))
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                        Spacer(minLength: 4)
+                    }
+                    .padding(.vertical, 3)
+                    
+                    if !insight.synonyms.isEmpty {
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("2")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(accentBlue.opacity(0.6))
+                                .frame(width: 18, alignment: .trailing)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Synonyms")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(accentBlue)
+                                Text(insight.synonyms.joined(separator: ", "))
+                                    .font(.system(size: 13.5, weight: .regular))
+                                    .foregroundColor(.primary)
+                                    .textSelection(.enabled)
+                            }
+                            Spacer(minLength: 4)
+                        }
+                        .padding(.vertical, 3)
+                    }
+                    if !insight.antonyms.isEmpty {
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("3")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(accentBlue.opacity(0.6))
+                                .frame(width: 18, alignment: .trailing)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Antonyms")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(accentBlue)
+                                Text(insight.antonyms.joined(separator: ", "))
+                                    .font(.system(size: 13.5, weight: .regular))
+                                    .foregroundColor(.primary)
+                                    .textSelection(.enabled)
+                            }
+                            Spacer(minLength: 4)
+                        }
+                        .padding(.vertical, 3)
+                    }
+                }
+            } else if let error = aiError {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                        .frame(width: 18, alignment: .trailing)
+                    Text(error)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+    
+    private func fetchAIInsightIfNeeded() async {
+        guard let result = result,
+              aiConfig.hasValidConfig,
+              let apiKey = aiConfig.apiKey else {
+            await MainActor.run {
+                aiInsight = nil
+                aiLoading = false
+                aiError = nil
+            }
+            return
+        }
+        
+        await MainActor.run {
+            aiLoading = true
+            aiInsight = nil
+            aiError = nil
+        }
+        
+        let definitions = result.meanings.flatMap { $0.definitions.map { $0.definition } }
+        
+        do {
+            let insight = try await AIInsightService.shared.fetchInsight(
+                word: word,
+                existingDefinitions: definitions,
+                provider: aiConfig.provider,
+                apiKey: apiKey
+            )
+            await MainActor.run {
+                aiInsight = insight
+                aiLoading = false
+                aiError = nil
+            }
+        } catch {
+            let message: String
+            if let aiError = error as? AIInsightError {
+                message = aiError.errorDescription ?? aiError.localizedDescription
+            } else if (error as NSError).domain == NSURLErrorDomain {
+                message = "Check your internet connection."
+            } else {
+                message = error.localizedDescription
+            }
+            await MainActor.run {
+                aiInsight = nil
+                aiLoading = false
+                aiError = message
+            }
         }
     }
     
