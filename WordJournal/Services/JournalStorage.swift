@@ -63,6 +63,29 @@ class JournalStorage: ObservableObject {
             print("CREATE TABLE statement could not be prepared: \(String(cString: sqlite3_errmsg(db)))")
         }
         sqlite3_finalize(createTableStatement)
+        
+        migrateAddSourceColumn()
+    }
+    
+    private func migrateAddSourceColumn() {
+        var hasSource = false
+        let pragmaSQL = "PRAGMA table_info(word_entries)"
+        var pragmaStmt: OpaquePointer?
+        if sqlite3_prepare_v2(db, pragmaSQL, -1, &pragmaStmt, nil) == SQLITE_OK {
+            while sqlite3_step(pragmaStmt) == SQLITE_ROW {
+                if let name = sqlite3_column_text(pragmaStmt, 1), String(cString: name) == "source" {
+                    hasSource = true
+                    break
+                }
+            }
+            sqlite3_finalize(pragmaStmt)
+        }
+        if !hasSource {
+            let alterSQL = "ALTER TABLE word_entries ADD COLUMN source TEXT"
+            if sqlite3_exec(db, alterSQL, nil, nil, nil) == SQLITE_OK {
+                print("JournalStorage: ✅ Added source column")
+            }
+        }
     }
     
     func addBlankEntry() -> WordEntry {
@@ -72,12 +95,13 @@ class JournalStorage: ObservableObject {
             partOfSpeech: "",
             example: "",
             dateLookedUp: Date(),
-            notes: ""
+            notes: "",
+            source: nil
         )
         
         let insertSQL = """
-            INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """
         
         var insertStatement: OpaquePointer?
@@ -92,6 +116,7 @@ class JournalStorage: ObservableObject {
             sqlite3_bind_text(insertStatement, 5, emptyStr, -1, nil)
             sqlite3_bind_double(insertStatement, 6, entry.dateLookedUp.timeIntervalSince1970)
             sqlite3_bind_text(insertStatement, 7, emptyStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 8, emptyStr, -1, nil)
             
             if sqlite3_step(insertStatement) == SQLITE_DONE {
                 print("JournalStorage: ✅ Blank entry created")
@@ -115,8 +140,8 @@ class JournalStorage: ObservableObject {
         }
         
         let insertSQL = """
-            INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO word_entries (id, word, definition, part_of_speech, example, date_looked_up, notes, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """
         
         var insertStatement: OpaquePointer?
@@ -129,6 +154,7 @@ class JournalStorage: ObservableObject {
             let posStr = (entry.partOfSpeech as NSString).utf8String
             let exStr = (entry.example as NSString).utf8String
             let notesStr = (entry.notes as NSString).utf8String
+            let sourceStr = ((entry.source ?? "") as NSString).utf8String
             
             sqlite3_bind_text(insertStatement, 1, idStr, -1, nil)
             sqlite3_bind_text(insertStatement, 2, wordStr, -1, nil)
@@ -137,6 +163,7 @@ class JournalStorage: ObservableObject {
             sqlite3_bind_text(insertStatement, 5, exStr, -1, nil)
             sqlite3_bind_double(insertStatement, 6, entry.dateLookedUp.timeIntervalSince1970)
             sqlite3_bind_text(insertStatement, 7, notesStr, -1, nil)
+            sqlite3_bind_text(insertStatement, 8, sourceStr, -1, nil)
             
             let stepResult = sqlite3_step(insertStatement)
             if stepResult == SQLITE_DONE {
@@ -160,7 +187,7 @@ class JournalStorage: ObservableObject {
     func updateEntry(_ entry: WordEntry) {
         let updateSQL = """
             UPDATE word_entries
-            SET word = ?, definition = ?, part_of_speech = ?, example = ?, notes = ?
+            SET word = ?, definition = ?, part_of_speech = ?, example = ?, notes = ?, source = ?
             WHERE id = ?;
         """
         
@@ -173,13 +200,15 @@ class JournalStorage: ObservableObject {
             let posStr = (entry.partOfSpeech as NSString).utf8String
             let exStr = (entry.example as NSString).utf8String
             let notesStr = (entry.notes as NSString).utf8String
+            let sourceStr = ((entry.source ?? "") as NSString).utf8String
             let idStr = (entry.id.uuidString as NSString).utf8String
             sqlite3_bind_text(updateStatement, 1, wordStr, -1, nil)
             sqlite3_bind_text(updateStatement, 2, defStr, -1, nil)
             sqlite3_bind_text(updateStatement, 3, posStr, -1, nil)
             sqlite3_bind_text(updateStatement, 4, exStr, -1, nil)
             sqlite3_bind_text(updateStatement, 5, notesStr, -1, nil)
-            sqlite3_bind_text(updateStatement, 6, idStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 6, sourceStr, -1, nil)
+            sqlite3_bind_text(updateStatement, 7, idStr, -1, nil)
             
             if sqlite3_step(updateStatement) == SQLITE_DONE {
                 DispatchQueue.main.async {
@@ -210,7 +239,7 @@ class JournalStorage: ObservableObject {
     }
     
     private func loadEntries() {
-        let querySQL = "SELECT id, word, definition, part_of_speech, example, date_looked_up, notes FROM word_entries ORDER BY date_looked_up DESC;"
+        let querySQL = "SELECT id, word, definition, part_of_speech, example, date_looked_up, notes, source FROM word_entries ORDER BY date_looked_up DESC;"
         
         var queryStatement: OpaquePointer?
         var loadedEntries: [WordEntry] = []
@@ -228,6 +257,11 @@ class JournalStorage: ObservableObject {
                 let example = sqlite3_column_text(queryStatement, 4).map { String(cString: $0) } ?? ""
                 let dateLookedUp = Date(timeIntervalSince1970: sqlite3_column_double(queryStatement, 5))
                 let notes = sqlite3_column_text(queryStatement, 6).map { String(cString: $0) } ?? ""
+                let source: String? = {
+                    guard let s = sqlite3_column_text(queryStatement, 7) else { return nil }
+                    let str = String(cString: s)
+                    return str.isEmpty ? nil : str
+                }()
                 
                 let entry = WordEntry(
                     id: id,
@@ -236,7 +270,8 @@ class JournalStorage: ObservableObject {
                     partOfSpeech: String(cString: partOfSpeech),
                     example: example,
                     dateLookedUp: dateLookedUp,
-                    notes: notes
+                    notes: notes,
+                    source: source
                 )
                 
                 loadedEntries.append(entry)
@@ -281,7 +316,7 @@ class JournalStorage: ObservableObject {
     }
     
     func exportToCSV() -> String {
-        var csv = "Word,Definition,Part of Speech,Example,Date,Notes\n"
+        var csv = "Word,Definition,Part of Speech,Example,Date,Notes,Source\n"
         
         for entry in entries {
             let word = escapeCSV(entry.word)
@@ -290,8 +325,9 @@ class JournalStorage: ObservableObject {
             let example = escapeCSV(entry.example)
             let date = DateFormatter().string(from: entry.dateLookedUp)
             let notes = escapeCSV(entry.notes)
+            let source = escapeCSV(entry.source ?? "")
             
-            csv += "\(word),\(definition),\(partOfSpeech),\(example),\(date),\(notes)\n"
+            csv += "\(word),\(definition),\(partOfSpeech),\(example),\(date),\(notes),\(source)\n"
         }
         
         return csv

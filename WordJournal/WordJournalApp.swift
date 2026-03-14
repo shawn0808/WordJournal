@@ -28,12 +28,16 @@ class KeyablePanel: NSPanel {
     }
 }
 
+/// Shared state for the main window tab (Lookup=0, Journal=1, Preferences=2).
+final class MainWindowState: ObservableObject {
+    @Published var selectedTab: Int = 0
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate?
     
     var mainWindow: NSWindow?
-    var journalWindow: NSWindow?
-    var preferencesWindow: NSWindow?
+    let mainWindowState = MainWindowState()
     var popupWindow: NSWindow?
     var popupClickMonitor: Any?
     var lastAnchorRect: CGRect?  // Remembered position for popup updates
@@ -244,7 +248,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
     
-    func showMainWindow() {
+    func showMainWindow(selectTab: Int? = nil) {
+        if let tab = selectTab {
+            mainWindowState.selectedTab = tab
+        }
         if let window = mainWindow, window.isVisible {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -252,7 +259,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let appDelegate = self
-        let contentView = MainWindowView(onLookupWord: { word in appDelegate.lookupWord(word) })
+        let contentView = MainWindowView(mainWindowState: mainWindowState, onLookupWord: { word in appDelegate.lookupWord(word) })
             .environmentObject(JournalStorage.shared)
         
         let hostingView = NSHostingView(rootView: contentView)
@@ -274,63 +281,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showJournal() {
-        // Check if window exists and is still valid
-        if let window = journalWindow, window.isVisible {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-        
-        // Create new window
-        let contentView = JournalView()
-            .environmentObject(JournalStorage.shared)
-        
-        let hostingView = NSHostingView(rootView: contentView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
-        
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Word Journal"
-        window.contentView = hostingView
-        window.center()
-        window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
-        journalWindow = window
-        NSApp.activate(ignoringOtherApps: true)
+        showMainWindow(selectTab: 1)
     }
     
     func showPreferences() {
-        // Check if window exists and is still valid
-        if let window = preferencesWindow, window.isVisible {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-        
-        // Create new window
-        let contentView = PreferencesView()
-            .environmentObject(TriggerManager.shared)
-        
-        let hostingView = NSHostingView(rootView: contentView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 500, height: 400)
-        
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Preferences"
-        window.contentView = hostingView
-        window.center()
-        window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
-        preferencesWindow = window
-        NSApp.activate(ignoringOtherApps: true)
+        showMainWindow(selectTab: 2)
     }
     
     func lookupWord(_ word: String) {
@@ -492,8 +447,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Close existing popup if any
         popupWindow?.close()
         
+        let outerPadding: CGFloat = 32
+        let cardWidth: CGFloat = 420
+        let compactCardHeight: CGFloat = 380   // NOAD + spinner
+        let expandedCardHeight: CGFloat = 580  // NOAD + full AI, no scroll needed
+        let useCompact = definition != nil && AIConfigStore.shared.hasValidConfig
+        let cardHeight = useCompact ? compactCardHeight : expandedCardHeight
+        let panelWidth = cardWidth + outerPadding * 2
+        let panelHeight = cardHeight + outerPadding * 2
+        
         let panel = KeyablePanel(
-            contentRect: NSRect(x: 0, y: 0, width: 484, height: 540),
+            contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
             backing: .buffered,
             defer: false
@@ -510,14 +474,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.becomesKeyOnlyIfNeeded = true
         
         // Position so the click location is at one of the 4 corners of the popup card.
-        // Pick the corner that keeps the most of the popup on screen.
-        // The panel is 484x464 (card 420x~400 + 32pt transparent padding on each side).
         if let screen = NSScreen.main {
-            let outerPadding: CGFloat = 32
-            let cardWidth: CGFloat = 420
-            let cardHeight: CGFloat = 476
-            let panelWidth: CGFloat = cardWidth + outerPadding * 2   // 484
-            let panelHeight: CGFloat = cardHeight + outerPadding * 2 // 540
             let visibleFrame = screen.visibleFrame
             let gap: CGFloat = 8  // Small gap between click point and card edge
             
@@ -591,11 +548,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             isLoading: isLoading,
             onAddToJournal: { defText, posText, exText in
                 print("AppDelegate: 'Add to Journal' clicked for definition: '\(defText.prefix(50))...'")
-                self.addToJournal(word: word, definition: defText, partOfSpeech: posText, example: exText)
+                self.addToJournal(word: word, definition: defText, partOfSpeech: posText, example: exText, notes: "", source: "NOAD")
+            },
+            onAddAIInsightToJournal: { defText, posText, exText, notes in
+                print("AppDelegate: 'Add AI insight to Journal' clicked for '\(word)'")
+                self.addToJournal(word: word, definition: defText, partOfSpeech: posText, example: exText, notes: notes, source: "AI")
             },
             onDismiss: {
                 panel.fadeOutAndClose()
-            }
+            },
+            onAIInsightLoaded: useCompact ? {
+                let expandedHeight = expandedCardHeight + outerPadding * 2
+                let frame = panel.frame
+                let newFrame = NSRect(x: frame.origin.x, y: frame.origin.y - (expandedHeight - frame.height), width: frame.width, height: expandedHeight)
+                NSAnimationContext.runAnimationGroup { ctx in
+                    ctx.duration = 0.35
+                    ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    panel.animator().setFrame(newFrame, display: true)
+                }
+            } : nil
         )
         
         let hostingView = NSHostingView(rootView: popupView)
@@ -647,7 +618,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func addToJournal(word: String, definition: String, partOfSpeech: String, example: String) {
+    private func addToJournal(word: String, definition: String, partOfSpeech: String, example: String, notes: String = "", source: String? = nil) {
         print("AppDelegate: addToJournal() called for word: '\(word)'")
         print("AppDelegate: Definition: '\(definition)'")
         print("AppDelegate: Part of speech: '\(partOfSpeech)'")
@@ -658,7 +629,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             partOfSpeech: partOfSpeech,
             example: example,
             dateLookedUp: Date(),
-            notes: ""
+            notes: notes,
+            source: source
         )
         
         JournalStorage.shared.addEntry(entry)

@@ -74,12 +74,16 @@ actor AIInsightService {
         """
         You are a vocabulary assistant. For the word "\(word)", provide:
         
-        1. EXPLANATION: One easy-to-understand sentence that defines the word. Write it as a direct definition (e.g. "To find out what is wrong..." or "A brief moment...")—do NOT start with "[word] means" or "To [word] means".
-        2. SYNONYMS: A comma-separated list of 3-5 common synonyms.
-        3. ANTONYMS: A comma-separated list of 2-4 common antonyms.
+        1. PART OF SPEECH: One word — noun, verb, adjective, adverb, preposition, conjunction, interjection, or pronoun. Use lowercase.
+        2. EXPLANATION: One easy-to-understand sentence that defines the word. Write it as a direct definition (e.g. "To find out what is wrong..." or "A brief moment...")—do NOT start with "[word] means" or "To [word] means".
+        3. EXAMPLE SENTENCE: One short example sentence that uses the word naturally in context, so the user can see how it is used.
+        4. SYNONYMS: A comma-separated list of 3-5 common synonyms.
+        5. ANTONYMS: A comma-separated list of 2-4 common antonyms.
         
         Format your response exactly like this:
+        Part of speech: [noun/verb/adjective/etc]
         Explanation: [your one-sentence explanation]
+        Example sentence: [one sentence using the word in context]
         Synonyms: [word1, word2, word3]
         Antonyms: [word1, word2]
         
@@ -206,7 +210,9 @@ actor AIInsightService {
     }
     
     private func parseFormattedResponse(_ text: String, word: String) -> AIWordInsight {
+        var partOfSpeech: String? = nil
         var plainExplanation = "\(word) means something that lasts for a very short time."
+        var exampleSentence: String? = nil
         var synonyms: [String] = []
         var antonyms: [String] = []
         var firstLineAsFallback: String?
@@ -216,10 +222,16 @@ actor AIInsightService {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else { continue }
             
-            if trimmed.lowercased().hasPrefix("explanation:") {
+            if trimmed.lowercased().hasPrefix("part of speech:") {
+                partOfSpeech = String(trimmed.dropFirst("part of speech:".count)).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.lowercased().hasPrefix("explanation:") {
                 plainExplanation = String(trimmed.dropFirst("explanation:".count)).trimmingCharacters(in: .whitespaces)
             } else if trimmed.lowercased().hasPrefix("in plain terms:") {
                 plainExplanation = String(trimmed.dropFirst("in plain terms:".count)).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.lowercased().hasPrefix("example sentence:") {
+                exampleSentence = String(trimmed.dropFirst("example sentence:".count)).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.lowercased().hasPrefix("example:") {
+                exampleSentence = String(trimmed.dropFirst("example:".count)).trimmingCharacters(in: .whitespaces)
             } else if trimmed.lowercased().hasPrefix("synonyms:") {
                 let rest = String(trimmed.dropFirst("synonyms:".count)).trimmingCharacters(in: .whitespaces)
                 synonyms = rest.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
@@ -227,8 +239,11 @@ actor AIInsightService {
                 let rest = String(trimmed.dropFirst("antonyms:".count)).trimmingCharacters(in: .whitespaces)
                 antonyms = rest.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             } else if firstLineAsFallback == nil,
+                      !trimmed.lowercased().hasPrefix("part of speech:"),
                       !trimmed.lowercased().hasPrefix("explanation:"),
                       !trimmed.lowercased().hasPrefix("in plain terms:"),
+                      !trimmed.lowercased().hasPrefix("example sentence:"),
+                      !trimmed.lowercased().hasPrefix("example:"),
                       !trimmed.lowercased().hasPrefix("synonyms:"),
                       !trimmed.lowercased().hasPrefix("antonyms:") {
                 firstLineAsFallback = trimmed
@@ -254,7 +269,9 @@ actor AIInsightService {
         }
         
         return AIWordInsight(
+            partOfSpeech: partOfSpeech,
             plainExplanation: plainExplanation,
+            exampleSentence: exampleSentence,
             synonyms: synonyms.isEmpty ? ["fleeting", "brief", "momentary"] : synonyms,
             antonyms: antonyms.isEmpty ? ["permanent", "lasting"] : antonyms
         )

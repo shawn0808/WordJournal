@@ -15,8 +15,9 @@ struct WordEntry: Identifiable, Codable {
     var example: String
     var dateLookedUp: Date
     var notes: String
+    var source: String?  // "NOAD" | "AI" | nil (legacy)
     
-    init(id: UUID = UUID(), word: String, definition: String, partOfSpeech: String, example: String, dateLookedUp: Date = Date(), notes: String = "") {
+    init(id: UUID = UUID(), word: String, definition: String, partOfSpeech: String, example: String, dateLookedUp: Date = Date(), notes: String = "", source: String? = nil) {
         self.id = id
         self.word = word
         self.definition = definition
@@ -24,5 +25,6 @@ struct WordEntry: Identifiable, Codable {
         self.example = example
         self.dateLookedUp = dateLookedUp
         self.notes = notes
+        self.source = source
     }
 }

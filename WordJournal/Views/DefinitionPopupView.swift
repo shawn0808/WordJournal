@@ -8,6 +8,16 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Content height preference (for NOAD section sizing)
+
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat { 0 }
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        value = max(value, next)
+    }
+}
+
 // MARK: - Pointing Hand Cursor
 
 extension View {
@@ -28,10 +38,13 @@ struct DefinitionPopupView: View {
     let result: DictionaryResult?
     let isLoading: Bool
     let onAddToJournal: (String, String, String) -> Void  // (definition, partOfSpeech, example)
+    var onAddAIInsightToJournal: ((String, String, String, String) -> Void)? = nil  // (definition, partOfSpeech, example, notes)
     let onDismiss: () -> Void
+    var onAIInsightLoaded: (() -> Void)? = nil
     
     @State private var isHovered = false
     @State private var addedDefinitions: Set<String> = []  // Track which definitions have been added
+    @State private var aiInsightAdded = false
     @State private var hoveredButton: String? = nil  // Track hovered + button for animation
     @StateObject private var audioPlayer = PronunciationPlayer()
     @ObservedObject private var aiConfig = AIConfigStore.shared
@@ -39,9 +52,15 @@ struct DefinitionPopupView: View {
     @State private var aiInsight: AIWordInsight?
     @State private var aiLoading = false
     @State private var aiError: String?
+    @State private var noadContentHeight: CGFloat = 280
     
     // Accent color for consistent theming
     private let accentBlue = Color(red: 0.35, green: 0.56, blue: 0.77)  // #5B8FB9-ish
+    // Align NOAD and AI body text: number column + spacing
+    private let bodyLeadingOffset: CGFloat = 18 + 10  // NOAD number width + HStack spacing
+    private let bodyFontSize: CGFloat = 13.5
+    private let bodyLineSpacing: CGFloat = 3
+    private let exampleFontSize: CGFloat = 13
     
     /// Find the first available audio URL from phonetics
     private var audioURL: URL? {
@@ -117,23 +136,20 @@ struct DefinitionPopupView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 120)
             } else if let result = result {
-                // Meanings
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(result.meanings.enumerated()), id: \.offset) { meaningIdx, meaning in
-                            
-                            // Visual separator between POS sections
-                            if meaningIdx > 0 {
-                                HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // ScrollView: NOAD + source only — AI insights stay visible below; height shrinks when content is short
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Meanings (NOAD) — fixedSize so we measure actual content height, not ScrollView's offered space
+                            ForEach(Array(result.meanings.enumerated()), id: \.offset) { meaningIdx, meaning in
+                                if meaningIdx > 0 {
                                     Rectangle()
                                         .fill(Color.secondary.opacity(0.15))
                                         .frame(height: 1)
+                                        .padding(.vertical, 12)
                                 }
-                                .padding(.vertical, 12)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 10) {
-                                // Part of speech label
+                                
+                                VStack(alignment: .leading, spacing: 10) {
                                 Text(meaning.partOfSpeech.capitalized)
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(accentBlue)
@@ -146,7 +162,6 @@ struct DefinitionPopupView: View {
                                     let isButtonHovered = hoveredButton == defKey
                                     
                                     HStack(alignment: .top, spacing: 10) {
-                                        // Definition number
                                         Text("\(idx + 1)")
                                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                                             .foregroundColor(accentBlue.opacity(0.6))
@@ -154,14 +169,14 @@ struct DefinitionPopupView: View {
                                         
                                         VStack(alignment: .leading, spacing: 5) {
                                             Text(definition.definition)
-                                                .font(.system(size: 13.5, weight: .regular))
-                                                .lineSpacing(3)
+                                                .font(.system(size: bodyFontSize, weight: .regular))
+                                                .lineSpacing(bodyLineSpacing)
                                                 .fixedSize(horizontal: false, vertical: true)
                                                 .textSelection(.enabled)
                                             
                                             if let example = definition.example, !example.isEmpty {
                                                 Text("\"\(example)\"")
-                                                    .font(.system(size: 13, weight: .regular, design: .serif))
+                                                    .font(.system(size: exampleFontSize, weight: .regular, design: .serif))
                                                     .italic()
                                                     .foregroundColor(.primary.opacity(0.85))
                                                     .lineSpacing(2)
@@ -172,10 +187,9 @@ struct DefinitionPopupView: View {
                                         
                                         Spacer(minLength: 4)
                                         
-                                        // Add button with hover animation
                                         Button(action: {
-                                            _ = withAnimation(.spring(response: 0.3)) {
-                                                addedDefinitions.insert(defKey)
+                                            withAnimation(.spring(response: 0.3)) {
+                                                _ = addedDefinitions.insert(defKey)
                                             }
                                             onAddToJournal(
                                                 definition.definition,
@@ -199,32 +213,42 @@ struct DefinitionPopupView: View {
                                 }
                             }
                         }
+                        
+                        // Source attribution (NOAD / dictionary)
+                        if let source = result.sourceUrls?.first {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .frame(height: 1)
+                                .padding(.top, 8)
+                            HStack(spacing: 5) {
+                                Image(systemName: "book.closed.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.secondary.opacity(0.45))
+                                Text(dictionarySourceLabel(source))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.secondary.opacity(0.45))
+                                Spacer()
+                            }
+                            .padding(.top, 6)
+                        }
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
+                            }
+                        )
                     }
-                }
-                .frame(maxHeight: 300)
-                
-                // Source attribution (NOAD / dictionary) — before AI
-                if let source = result.sourceUrls?.first {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.1))
-                        .frame(height: 1)
-                    HStack(spacing: 5) {
-                        Image(systemName: "book.closed.fill")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary.opacity(0.45))
-                        Text(dictionarySourceLabel(source))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary.opacity(0.45))
-                        Spacer()
+                    .onPreferenceChange(ContentHeightKey.self) { h in
+                        if h > 0 { noadContentHeight = min(h, 280) }
                     }
-                }
-                
-                // AI Insights section
-                if aiConfig.hasValidConfig {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.1))
-                        .frame(height: 1)
-                    aiInsightsSection(result: result)
+                    .frame(height: min(noadContentHeight, 280))
+                    .onChange(of: word, perform: { _ in noadContentHeight = 280 })
+                    
+                    // AI Insights — always visible below NOAD, no scrolling needed
+                    if aiConfig.hasValidConfig {
+                        aiInsightsSection(result: result)
+                    }
                 }
             }
         }
@@ -248,17 +272,26 @@ struct DefinitionPopupView: View {
         .task(id: "\(word)-\(result != nil)") {
             await fetchAIInsightIfNeeded()
         }
+        .onChange(of: aiLoading) { isNowLoading in
+            if !isNowLoading, aiInsight != nil {
+                onAIInsightLoaded?()
+            }
+        }
     }
     
     @ViewBuilder
     private func aiInsightsSection(result: DictionaryResult) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Section label — matches dictionary POS style (NOUN, VERB)
-            Text("AI INSIGHTS (\(aiConfig.provider.displayName))")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(accentBlue)
-                .textCase(.uppercase)
-                .tracking(0.8)
+        VStack(alignment: .leading, spacing: 0) {
+            // Section label — "AI Insights" with same icon as Preferences
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14))
+                    .foregroundColor(accentBlue)
+                Text("AI Insights")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(accentBlue)
+            }
+            .padding(.top, 10)
             
             if aiLoading {
                 HStack(spacing: 8) {
@@ -268,63 +301,13 @@ struct DefinitionPopupView: View {
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
+                .padding(.top, 8)
             } else if let insight = aiInsight {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Plain explanation — aligned like dictionary definition (number + content)
-                    HStack(alignment: .top, spacing: 10) {
-                        Text("1")
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundColor(accentBlue.opacity(0.6))
-                            .frame(width: 18, alignment: .trailing)
-                        Text(insight.plainExplanation)
-                            .font(.system(size: 13.5, weight: .regular))
-                            .lineSpacing(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
-                        Spacer(minLength: 4)
-                    }
-                    .padding(.vertical, 3)
-                    
-                    if !insight.synonyms.isEmpty {
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("2")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(accentBlue.opacity(0.6))
-                                .frame(width: 18, alignment: .trailing)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Synonyms")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(accentBlue)
-                                Text(insight.synonyms.joined(separator: ", "))
-                                    .font(.system(size: 13.5, weight: .regular))
-                                    .foregroundColor(.primary)
-                                    .textSelection(.enabled)
-                            }
-                            Spacer(minLength: 4)
-                        }
-                        .padding(.vertical, 3)
-                    }
-                    if !insight.antonyms.isEmpty {
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("3")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(accentBlue.opacity(0.6))
-                                .frame(width: 18, alignment: .trailing)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Antonyms")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(accentBlue)
-                                Text(insight.antonyms.joined(separator: ", "))
-                                    .font(.system(size: 13.5, weight: .regular))
-                                    .foregroundColor(.primary)
-                                    .textSelection(.enabled)
-                            }
-                            Spacer(minLength: 4)
-                        }
-                        .padding(.vertical, 3)
-                    }
-                }
+                aiInsightContent(insight: insight)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal: .opacity
+                    ))
             } else if let error = aiError {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -335,15 +318,159 @@ struct DefinitionPopupView: View {
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
+                .padding(.top, 8)
             }
         }
+        .animation(.easeOut(duration: 0.35), value: aiInsight != nil)
+    }
+    
+    @ViewBuilder
+    private func aiInsightContent(insight: AIWordInsight) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Part of speech (like NOAD: full width)
+            if let pos = insight.partOfSpeech, !pos.isEmpty {
+                Text(pos.uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(accentBlue)
+                    .tracking(0.8)
+                    .padding(.bottom, 6)
+            }
+            // Body content: same leading offset as NOAD definition text (number column + spacing)
+            VStack(alignment: .leading, spacing: 0) {
+            // Plain explanation — same font as NOAD
+            HStack(alignment: .top, spacing: 10) {
+                Text(insight.plainExplanation)
+                    .font(.system(size: bodyFontSize, weight: .regular))
+                    .lineSpacing(bodyLineSpacing)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                Spacer(minLength: 4)
+                if let addAI = onAddAIInsightToJournal {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            aiInsightAdded = true
+                        }
+                        let notes = buildAIInsightNotes(insight: insight)
+                        addAI(insight.plainExplanation, insight.partOfSpeech ?? "", insight.exampleSentence ?? "", notes)
+                    }) {
+                        Image(systemName: aiInsightAdded ? "checkmark.circle.fill" : "plus.circle.fill")
+                            .foregroundColor(aiInsightAdded ? .green : (hoveredButton == "aiInsight" ? accentBlue : accentBlue.opacity(0.6)))
+                            .font(.system(size: hoveredButton == "aiInsight" && !aiInsightAdded ? 20 : 18))
+                    }
+                    .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .onHover { hovered in
+                        hoveredButton = hovered ? "aiInsight" : nil
+                    }
+                    .help(aiInsightAdded ? "Added to Journal" : "Add AI insight to Journal")
+                    .disabled(aiInsightAdded)
+                }
+            }
+            .padding(.vertical, 3)
+            
+            if let example = insight.exampleSentence, !example.isEmpty {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Example")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(accentBlue)
+                        Text(example)
+                            .font(.system(size: exampleFontSize, weight: .regular, design: .serif))
+                            .italic()
+                            .foregroundColor(.primary.opacity(0.85))
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                    }
+                    Spacer(minLength: 4)
+                }
+                .padding(.vertical, 3)
+            }
+            if !insight.synonyms.isEmpty {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Synonyms")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(accentBlue)
+                        Text(insight.synonyms.joined(separator: ", "))
+                            .font(.system(size: bodyFontSize, weight: .regular))
+                            .foregroundColor(.primary)
+                            .textSelection(.enabled)
+                    }
+                    Spacer(minLength: 4)
+                }
+                .padding(.vertical, 3)
+            }
+            if !insight.antonyms.isEmpty {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Antonyms")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(accentBlue)
+                        Text(insight.antonyms.joined(separator: ", "))
+                            .font(.system(size: bodyFontSize, weight: .regular))
+                            .foregroundColor(.primary)
+                            .textSelection(.enabled)
+                    }
+                    Spacer(minLength: 4)
+                }
+                .padding(.vertical, 3)
+            }
+            
+            // Source attribution (same format as NOAD)
+            Rectangle()
+                .fill(Color.secondary.opacity(0.1))
+                .frame(height: 1)
+                .padding(.top, 8)
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary.opacity(0.45))
+                Text(aiConfig.provider.displayName)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary.opacity(0.45))
+                Spacer()
+            }
+            .padding(.top, 6)
+            }
+            .padding(.leading, bodyLeadingOffset)
+        }
+        .padding(.top, 8)
+    }
+    
+    private func buildAIInsightNotes(insight: AIWordInsight) -> String {
+        var parts: [String] = []
+        if !insight.synonyms.isEmpty {
+            parts.append("Synonyms: \(insight.synonyms.joined(separator: ", "))")
+        }
+        if !insight.antonyms.isEmpty {
+            parts.append("Antonyms: \(insight.antonyms.joined(separator: ", "))")
+        }
+        return parts.joined(separator: ". ")
     }
     
     private func fetchAIInsightIfNeeded() async {
         guard let result = result,
-              aiConfig.hasValidConfig,
-              let apiKey = aiConfig.apiKey else {
+              aiConfig.hasValidConfig else {
+            await MainActor.run {
+                aiInsight = nil
+                aiLoading = false
+                aiError = nil
+            }
+            return
+        }
+        
+        // Check cache first — avoid re-fetching
+        if let cached = AIInsightCache.load(for: word) {
+            await MainActor.run {
+                aiInsight = cached
+                aiLoading = false
+                aiError = nil
+            }
+            return
+        }
+        
+        guard let apiKey = aiConfig.apiKey else {
             await MainActor.run {
                 aiInsight = nil
                 aiLoading = false
@@ -367,6 +494,7 @@ struct DefinitionPopupView: View {
                 provider: aiConfig.provider,
                 apiKey: apiKey
             )
+            AIInsightCache.save(insight, for: word)
             await MainActor.run {
                 aiInsight = insight
                 aiLoading = false

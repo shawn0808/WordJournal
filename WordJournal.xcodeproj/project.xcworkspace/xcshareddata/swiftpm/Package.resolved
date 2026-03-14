@@ -1,5 +1,4 @@
 {
-  "originHash" : "74b4187267fe3776a381f07ccd71c7cd663f3e9de4dc3326a0f5eddee60e37df",
   "pins" : [
     {
       "identity" : "menubarextraaccess",
@@ -20,5 +19,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

@@ -32,7 +32,8 @@ struct JournalView: View {
             base = journalStorage.entries.filter { entry in
                 entry.word.localizedCaseInsensitiveContains(searchText) ||
                 entry.definition.localizedCaseInsensitiveContains(searchText) ||
-                entry.notes.localizedCaseInsensitiveContains(searchText)
+                entry.notes.localizedCaseInsensitiveContains(searchText) ||
+                (entry.source ?? "").localizedCaseInsensitiveContains(searchText)
             }
         }
         return base.sorted(using: sortOrder)
@@ -40,261 +41,11 @@ struct JournalView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Toolbar
-            HStack(spacing: 12) {
-                // Search field with icon
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 12))
-                    TextField("Search words...", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 13))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color(NSColor.textBackgroundColor))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                )
-                .frame(width: 220)
-                
-                // Entry count badge
-                HStack(spacing: 5) {
-                    Text("\(filteredEntries.count)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .frame(minWidth: 24, minHeight: 24)
-                        .background(Circle().fill(accentBlue.opacity(0.8)))
-                    Text("entries")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                // Toolbar buttons
-                toolbarButton(
-                    id: "playAll",
-                    icon: isPlayingAll ? "stop.fill" : "play.fill",
-                    label: isPlayingAll ? "Stop (\(currentPlayIndex + 1)/\(filteredEntries.count))" : "Play All",
-                    color: isPlayingAll ? .orange : accentBlue
-                ) {
-                    if isPlayingAll { stopPlayAll() } else { playAllWords() }
-                }
-                .disabled(filteredEntries.isEmpty)
-                
-                toolbarButton(
-                    id: "export",
-                    icon: "square.and.arrow.up",
-                    label: "Export CSV",
-                    color: accentBlue
-                ) {
-                    exportToCSV()
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Color(NSColor.windowBackgroundColor))
-            
+            toolbarSection
             Divider()
-            
-            // MARK: - Content
-            if filteredEntries.isEmpty && searchText.isEmpty {
-                // Empty state
-                Spacer()
-                VStack(spacing: 16) {
-                    Image(systemName: "book.closed")
-                        .font(.system(size: 48, weight: .thin))
-                        .foregroundColor(.secondary.opacity(0.5))
-                    Text("No words yet")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                    Text("Look up a word to get started, or click\nthe + button below to add one manually.")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                }
-                Spacer()
-            } else if filteredEntries.isEmpty && !searchText.isEmpty {
-                // No search results
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 36, weight: .thin))
-                        .foregroundColor(.secondary.opacity(0.5))
-                    Text("No results for \"\(searchText)\"")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            } else {
-                // Table with alternating row colors
-                Table(filteredEntries, sortOrder: $sortOrder) {
-                    TableColumn("") { entry in
-                        Button(action: {
-                            audioPlayer.pronounce(word: entry.word, audioURL: nil)
-                        }) {
-                            Image(systemName: "speaker.wave.2.fill")
-                                .foregroundColor(accentBlue)
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                        .pointingHandCursor()
-                        .help("Pronounce \(entry.word)")
-                    }
-                    .width(30)
-                    
-                    TableColumn("Word", value: \.word) { entry in
-                        EditableText(text: Binding(
-                            get: { entry.word },
-                            set: { newValue in
-                                var updated = entry
-                                updated.word = newValue
-                                journalStorage.updateEntry(updated)
-                                
-                                // Auto-populate if this is a blank row and user just entered a word
-                                if entry.definition.isEmpty && !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    autoLookup(word: newValue.trimmingCharacters(in: .whitespacesAndNewlines), entryID: entry.id)
-                                }
-                            }
-                        ), fontWeight: .semibold)
-                        .overlay(alignment: .trailing) {
-                            if lookingUpEntryID == entry.id {
-                                ProgressView()
-                                    .scaleEffect(0.5)
-                                    .padding(.trailing, 4)
-                            }
-                        }
-                    }
-                    .width(min: 100, ideal: 150)
-                    
-                    TableColumn("Definition", value: \.definition) { entry in
-                        EditableText(text: Binding(
-                            get: { entry.definition },
-                            set: { newValue in
-                                var updated = entry
-                                updated.definition = newValue
-                                journalStorage.updateEntry(updated)
-                            }
-                        ))
-                    }
-                    .width(min: 200, ideal: 300)
-                    
-                    TableColumn("Example", value: \.example) { entry in
-                        EditableText(text: Binding(
-                            get: { entry.example },
-                            set: { newValue in
-                                var updated = entry
-                                updated.example = newValue
-                                journalStorage.updateEntry(updated)
-                            }
-                        ), isItalic: true)
-                    }
-                    .width(min: 150, ideal: 250)
-                    
-                    TableColumn("POS", value: \.partOfSpeech) { entry in
-                        if !entry.partOfSpeech.isEmpty {
-                            Text(entry.partOfSpeech)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(accentBlue)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    Capsule().fill(accentBlue.opacity(0.1))
-                                )
-                        } else {
-                            EditableText(text: Binding(
-                                get: { entry.partOfSpeech },
-                                set: { newValue in
-                                    var updated = entry
-                                    updated.partOfSpeech = newValue
-                                    journalStorage.updateEntry(updated)
-                                }
-                            ))
-                        }
-                    }
-                    .width(min: 80, ideal: 100)
-                    
-                    TableColumn("Date", value: \.dateLookedUp) { entry in
-                        Text(entry.dateLookedUp, style: .date)
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-                    .width(min: 90, ideal: 110)
-                    
-                    TableColumn("Notes", value: \.notes) { entry in
-                        EditableText(text: Binding(
-                            get: { entry.notes },
-                            set: { newValue in
-                                var updated = entry
-                                updated.notes = newValue
-                                journalStorage.updateEntry(updated)
-                            }
-                        ))
-                    }
-                    .width(min: 150, ideal: 200)
-                    
-                    TableColumn("") { entry in
-                        Button(action: {
-                            entryToDelete = entry
-                            showDeleteConfirmation = true
-                        }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red.opacity(0.6))
-                                .font(.system(size: 12))
-                        }
-                        .buttonStyle(.plain)
-                        .pointingHandCursor()
-                        .help("Delete \(entry.word)")
-                    }
-                    .width(40)
-                }
-                .alternatingRowBackgroundsIfAvailable()
-            }
-            
+            contentSection
             Divider()
-            
-            // MARK: - Bottom Bar
-            HStack(spacing: 12) {
-                Button(action: {
-                    withAnimation(.spring(response: 0.3)) {
-                        _ = journalStorage.addBlankEntry()
-                    }
-                }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 14))
-                        Text("Add Word")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundColor(accentBlue)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(accentBlue.opacity(0.08))
-                    )
-                }
-                .buttonStyle(.plain)
-                .pointingHandCursor()
-                
-                Spacer()
-                
-                if !filteredEntries.isEmpty {
-                    Text("\(journalStorage.entries.count) total words in journal")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.6))
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Color(NSColor.windowBackgroundColor))
+            bottomBarSection
         }
         .alert("Export Complete", isPresented: $showExportAlert) {
             Button("OK") { }
@@ -318,6 +69,312 @@ struct JournalView: View {
                 Text("Are you sure you want to delete \"\(entry.word)\" from your journal? This cannot be undone.")
             }
         }
+    }
+    
+    // MARK: - Toolbar
+    
+    @ViewBuilder
+    private var toolbarSection: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                    .font(.system(size: 12))
+                TextField("Search words...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(NSColor.textBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+            )
+            .frame(width: 220)
+            
+            HStack(spacing: 5) {
+                Text("\(filteredEntries.count)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(minWidth: 24, minHeight: 24)
+                    .background(Circle().fill(accentBlue.opacity(0.8)))
+                Text("entries")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            toolbarButton(
+                id: "playAll",
+                icon: isPlayingAll ? "stop.fill" : "play.fill",
+                label: isPlayingAll ? "Stop (\(currentPlayIndex + 1)/\(filteredEntries.count))" : "Play All",
+                color: isPlayingAll ? .orange : accentBlue
+            ) {
+                if isPlayingAll { stopPlayAll() } else { playAllWords() }
+            }
+            .disabled(filteredEntries.isEmpty)
+            
+            toolbarButton(
+                id: "export",
+                icon: "square.and.arrow.up",
+                label: "Export CSV",
+                color: accentBlue
+            ) {
+                exportToCSV()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color(NSColor.windowBackgroundColor))
+    }
+    
+    @ViewBuilder
+    private var contentSection: some View {
+        if filteredEntries.isEmpty && searchText.isEmpty {
+            Spacer()
+            emptyStateView
+            Spacer()
+        } else if filteredEntries.isEmpty && !searchText.isEmpty {
+            Spacer()
+            noResultsView
+            Spacer()
+        } else {
+            entriesTableView
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "book.closed")
+                .font(.system(size: 48, weight: .thin))
+                .foregroundColor(.secondary.opacity(0.5))
+            Text("No words yet")
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .foregroundColor(.secondary)
+            Text("Look up a word to get started, or click\nthe + button below to add one manually.")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+        }
+    }
+    
+    private var noResultsView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 36, weight: .thin))
+                .foregroundColor(.secondary.opacity(0.5))
+            Text("No results for \"\(searchText)\"")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var entriesTableView: some View {
+        Table(filteredEntries, sortOrder: $sortOrder) {
+            TableColumn("") { entry in
+                Button(action: {
+                    audioPlayer.pronounce(word: entry.word, audioURL: nil)
+                }) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .foregroundColor(accentBlue)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .help("Pronounce \(entry.word)")
+            }
+            .width(30)
+            
+            TableColumn("Word", value: \.word) { entry in
+                wordColumnContent(entry: entry)
+            }
+            .width(min: 100, ideal: 150)
+            
+            TableColumn("Definition", value: \.definition) { entry in
+                EditableText(text: Binding(
+                    get: { entry.definition },
+                    set: { newValue in
+                        var updated = entry
+                        updated.definition = newValue
+                        journalStorage.updateEntry(updated)
+                    }
+                ))
+            }
+            .width(min: 200, ideal: 300)
+            
+            TableColumn("Example", value: \.example) { entry in
+                EditableText(text: Binding(
+                    get: { entry.example },
+                    set: { newValue in
+                        var updated = entry
+                        updated.example = newValue
+                        journalStorage.updateEntry(updated)
+                    }
+                ), isItalic: true)
+            }
+            .width(min: 150, ideal: 250)
+            
+            TableColumn("POS", value: \.partOfSpeech) { entry in
+                posColumnContent(entry: entry)
+            }
+            .width(min: 80, ideal: 100)
+            
+            TableColumn("Source") { entry in
+                sourceColumnContent(entry: entry)
+            }
+            .width(min: 50, ideal: 60)
+            
+            TableColumn("Date", value: \.dateLookedUp) { entry in
+                Text(entry.dateLookedUp, style: .date)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .width(min: 90, ideal: 110)
+            
+            TableColumn("Notes", value: \.notes) { entry in
+                notesColumnContent(entry: entry)
+            }
+            .width(min: 180, ideal: 280)
+            
+            TableColumn("") { entry in
+                Button(action: {
+                    entryToDelete = entry
+                    showDeleteConfirmation = true
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red.opacity(0.6))
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.plain)
+                .pointingHandCursor()
+                .help("Delete \(entry.word)")
+            }
+            .width(40)
+        }
+        .alternatingRowBackgroundsIfAvailable()
+    }
+    
+    @ViewBuilder
+    private func wordColumnContent(entry: WordEntry) -> some View {
+        EditableText(text: Binding(
+            get: { entry.word },
+            set: { newValue in
+                var updated = entry
+                updated.word = newValue
+                journalStorage.updateEntry(updated)
+                if entry.definition.isEmpty && !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    autoLookup(word: newValue.trimmingCharacters(in: .whitespacesAndNewlines), entryID: entry.id)
+                }
+            }
+        ), fontWeight: .semibold)
+        .overlay(alignment: .trailing) {
+            if lookingUpEntryID == entry.id {
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .padding(.trailing, 4)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func posColumnContent(entry: WordEntry) -> some View {
+        if !entry.partOfSpeech.isEmpty {
+            Text(entry.partOfSpeech)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(accentBlue)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(accentBlue.opacity(0.1)))
+        } else {
+            EditableText(text: Binding(
+                get: { entry.partOfSpeech },
+                set: { newValue in
+                    var updated = entry
+                    updated.partOfSpeech = newValue
+                    journalStorage.updateEntry(updated)
+                }
+            ))
+        }
+    }
+    
+    @ViewBuilder
+    private func sourceColumnContent(entry: WordEntry) -> some View {
+        if let source = entry.source, !source.isEmpty {
+            Text(source)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(source == "AI" ? .orange : accentBlue)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    Capsule().fill((source == "AI" ? Color.orange : accentBlue).opacity(0.15))
+                )
+        } else {
+            Text("—")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary.opacity(0.5))
+        }
+    }
+    
+    @ViewBuilder
+    private func notesColumnContent(entry: WordEntry) -> some View {
+        if entry.source == "AI", entry.notes.contains("Synonyms:") || entry.notes.contains("Antonyms:") {
+            Text(formattedAINotes(entry.notes))
+                .font(.system(size: 12))
+                .foregroundColor(.primary)
+        } else {
+            EditableText(text: Binding(
+                get: { entry.notes },
+                set: { newValue in
+                    var updated = entry
+                    updated.notes = newValue
+                    journalStorage.updateEntry(updated)
+                }
+            ))
+        }
+    }
+    
+    @ViewBuilder
+    private var bottomBarSection: some View {
+        HStack(spacing: 12) {
+            Button(action: {
+                withAnimation(.spring(response: 0.3)) {
+                    _ = journalStorage.addBlankEntry()
+                }
+            }) {
+                HStack(spacing: 5) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 14))
+                    Text("Add Word")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(accentBlue)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(accentBlue.opacity(0.08))
+                )
+            }
+            .buttonStyle(.plain)
+            .pointingHandCursor()
+            
+            Spacer()
+            
+            if !filteredEntries.isEmpty {
+                Text("\(journalStorage.entries.count) total words in journal")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary.opacity(0.6))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(NSColor.windowBackgroundColor))
     }
     
     // MARK: - Toolbar Button Helper
@@ -400,6 +457,7 @@ struct JournalView: View {
                         updated.definition = firstDef.definition
                         updated.partOfSpeech = firstMeaning.partOfSpeech
                         updated.example = firstDef.example ?? ""
+                        updated.source = "NOAD"
                     }
                     journalStorage.updateEntry(updated)
                     print("JournalStorage: ✅ Auto-populated entry for '\(word)'")
@@ -414,6 +472,13 @@ struct JournalView: View {
     private func stopPlayAll() {
         isPlayingAll = false
         audioPlayer.stop()
+    }
+    
+    /// Formats AI notes (Synonyms: … Antonyms: …) for easier reading with line breaks.
+    private func formattedAINotes(_ notes: String) -> String {
+        notes
+            .replacingOccurrences(of: ". Antonyms:", with: "\nAntonyms:")
+            .replacingOccurrences(of: ". Synonyms:", with: "\nSynonyms:")
     }
     
     private func exportToCSV() {
